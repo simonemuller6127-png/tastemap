@@ -54,6 +54,7 @@ data class MealRecord(
 @Entity(
     tableName = "record_tastes",
     primaryKeys = ["recordId", "tasteId"],
+    indices = [Index("tasteId")], // 外键列建索引，避免父表修改时全表扫描
     foreignKeys = [
         ForeignKey(
             entity = MealRecord::class,

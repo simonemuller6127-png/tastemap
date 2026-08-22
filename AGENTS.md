@@ -9,12 +9,14 @@
 ## 构建与运行（本机无 Android Studio，Windows cmd）
 ```
 call env.bat                       # 设置 JAVA_HOME/ANDROID_HOME/GRADLE_USER_HOME/PATH（env.bat 不入库）
-gradlew.bat :app:assembleDebug     # 构建调试包
 gradlew.bat test                   # 单元测试
-adb install -r app\build\outputs\apk\debug\app-debug.apk
+gradlew.bat :app:assembleDebug     # 构建调试包
+adb install -r D:\smellmap-build\app\outputs\apk\debug\app-debug.apk
 adb logcat | findstr /i smellmap com.amap   # 看运行日志
 ```
 工具链位置（全在 D 盘，SPEC D10）：JDK17=`D:\jdk-17`，Git=`D:\PortableGit`，Gradle=`D:\gradle`（项目内优先用 wrapper），SDK=`D:\android-sdk`，Gradle 缓存=`D:\gradle-home`。CI：GitHub Actions 见 `.github/workflows/android.yml`。
+
+**构建产物路径**：仓库路径含中文，`android.overridePathCheck` + 根 build.gradle.kts 里把 buildDirectory 重定向到了 `D:\smellmap-build\`——APK、测试报告都在那里，不要在仓库目录下找 build/。gradle wrapper 分发地址用腾讯镜像（services.gradle.org 国内不通）。
 
 ## 硬约束
 1. 架构：单模块 MVVM + Repository，分包 `data/ map/ ui/ share/ deeplink/ sticker/`（SPEC D2）。不引入 multi-module。

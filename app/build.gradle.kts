@@ -44,6 +44,11 @@ ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
 
+tasks.withType<Test>().configureEach {
+    // 中文 Windows + CJK 工程路径下，测试 JVM 必须显式 UTF-8（配合根目录 buildDirectory 重定向）
+    systemProperty("file.encoding", "UTF-8")
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -72,9 +77,9 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
 
-    // 唯一允许的网络依赖（AGENTS.md 硬约束 2）
-    implementation(libs.amap.3dmap)
-    implementation(libs.amap.location)
+    // 唯一允许的网络依赖（AGENTS.md 硬约束 2）。
+    // 注意：3dmap 9.x 起已内置定位能力（含 AMapLocationClient），不要再加独立 location SDK，会类冲突
+    implementation(libs.amap.map3d)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
