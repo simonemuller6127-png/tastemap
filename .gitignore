@@ -1,0 +1,14 @@
+*.iml
+.gradle/
+build/
+/local.properties
+.idea/
+.DS_Store
+/captures
+.externalNativeBuild
+.cxx
+
+# 本机环境脚本与密钥不入库（AGENTS.md）
+env.bat
+*.jks
+*.keystore

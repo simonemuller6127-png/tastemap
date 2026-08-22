@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- M0 临时图标：纸底 + 暖红图钉。M1 手绘设计系统落地时替换（SPEC D11） -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#F7F2E7"
+        android:pathData="M0,0h108v108h-108z" />
+    <path
+        android:fillColor="#4A4238"
+        android:pathData="M54,22c-12.7,0 -23,10.3 -23,23c0,16.5 23,41 23,41s23,-24.5 23,-41c0,-12.7 -10.3,-23 -23,-23z" />
+    <path
+        android:fillColor="#D9482B"
+        android:pathData="M54,26c-10.5,0 -19,8.5 -19,19c0,13.5 19,34 19,34s19,-20.5 19,-34c0,-10.5 -8.5,-19 -19,-19z" />
+    <path
+        android:fillColor="#F7F2E7"
+        android:pathData="M47,45a7,7 0 1,0 14,0a7,7 0 1,0 -14,0z" />
+</vector>
