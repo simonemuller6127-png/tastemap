@@ -76,12 +76,14 @@ private val DEFAULT_CENTER = LatLng(30.59276, 114.30525)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MapHomeScreen(vm: MapHomeViewModel = hiltViewModel()) {
+fun MapHomeScreen(
+    onCreateRecord: (latitude: Double, longitude: Double) -> Unit,
+    vm: MapHomeViewModel = hiltViewModel(),
+) {
     val context = LocalContext.current
     val density = context.resources.displayMetrics.density
     val pins by vm.pins.collectAsStateWithLifecycle()
     val tastes by vm.tastes.collectAsStateWithLifecycle()
-    val pending by vm.pendingPin.collectAsStateWithLifecycle()
     val message by vm.message.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -197,7 +199,7 @@ fun MapHomeScreen(vm: MapHomeViewModel = hiltViewModel()) {
                         map.uiSettings.isRotateGesturesEnabled = false
                         map.moveCamera(CameraUpdateFactory.newLatLngZoom(DEFAULT_CENTER, 11f))
                         map.setOnMapLongClickListener { latLng ->
-                            vm.onMapLongPress(latLng.latitude, latLng.longitude)
+                            onCreateRecord(latLng.latitude, latLng.longitude)
                         }
                         aMapRef = map
                         mapViewRef = this
@@ -222,121 +224,6 @@ fun MapHomeScreen(vm: MapHomeViewModel = hiltViewModel()) {
         }
     }
 
-    pending?.let { p ->
-        NewRecordSheet(
-            latitude = p.latitude,
-            longitude = p.longitude,
-            tastes = tastes,
-            onDismiss = vm::dismissPinSheet,
-            onSave = vm::saveRecord,
-        )
-    }
-}
-
-/** F02 最小新建记录表单：店名/菜名/评分/口味多选/一句话评价 */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
-@Composable
-private fun NewRecordSheet(
-    latitude: Double,
-    longitude: Double,
-    tastes: List<TasteTag>,
-    onDismiss: () -> Unit,
-    onSave: (shopName: String, address: String, dishName: String, rating: Int, comment: String, tasteIds: List<Long>) -> Unit,
-) {
-    var shopName by remember { mutableStateOf("") }
-    var dishName by remember { mutableStateOf("") }
-    var rating by remember { mutableStateOf(4f) }
-    var comment by remember { mutableStateOf("") }
-    val selectedTastes = remember { mutableStateListOf<Long>() }
-
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            Modifier
-                .padding(horizontal = 20.dp)
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text("新建美食记录", style = MaterialTheme.typography.titleLarge)
-            Text(
-                "坐标：%.5f, %.5f（离线保存）".format(latitude, longitude),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            OutlinedTextField(
-                value = shopName,
-                onValueChange = { shopName = it },
-                label = { Text("店名 *") },
-                singleLine = true,
-            )
-            OutlinedTextField(
-                value = dishName,
-                onValueChange = { dishName = it },
-                label = { Text("菜名（如：咸蛋黄焗虾）") },
-                singleLine = true,
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("评分")
-                Text(
-                    " ${rating.toInt()}",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-            Slider(
-                value = rating,
-                onValueChange = { rating = it },
-                valueRange = 1f..5f,
-                steps = 3,
-            )
-            Text("口味（可多选，决定图钉颜色）")
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                tastes.forEach { taste ->
-                    FilterChip(
-                        selected = taste.id in selectedTastes,
-                        onClick = {
-                            if (taste.id in selectedTastes) selectedTastes.remove(taste.id)
-                            else selectedTastes.add(taste.id)
-                        },
-                        label = { Text(taste.name) },
-                        leadingIcon = {
-                            Box(
-                                Modifier
-                                    .size(10.dp)
-                                    .background(
-                                        color = Color(MarkerFactory.parseColor(taste.colorHex)),
-                                        shape = CircleShape,
-                                    ),
-                            )
-                        },
-                    )
-                }
-            }
-            OutlinedTextField(
-                value = comment,
-                onValueChange = { comment = it },
-                label = { Text("一句话评价") },
-                minLines = 2,
-            )
-            Button(
-                onClick = {
-                    onSave(
-                        shopName.trim(),
-                        "",
-                        dishName.trim(),
-                        rating.toInt(),
-                        comment.trim(),
-                        selectedTastes.toList(),
-                    )
-                },
-                enabled = shopName.isNotBlank(),
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("保存") }
-        }
-    }
 }
 
 private fun pinSnippet(pin: ShopPin): String = buildString {

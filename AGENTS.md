@@ -51,4 +51,12 @@ app/src/main/java/com/tastemap/app/
 ```
 
 ## 当前状态
-M0 进行中（F01/F02/F06 基础）：地图主页、长按新建记录、Room 数据层、备份恢复。下一里程碑 M1 见 PRD §8。
+R0 地基进行中（M0 已完成：地图主页真机验收通过）。下一里程碑见 PRD v1.3 §8（R0-R4 一步到位路线）。
+
+## 共享契约（R0 定稿，R2 各切片遵守；改动必须走主线会话并在此登记）
+- **路由表**：`ui/nav/TasteMapNav.kt` 的 `Routes`（10 条）。切片只替换占位屏的 composable 内容，不改路由常量名
+- **Room schema v2**：见 `data/db/Entities.kt` 与 `app/schemas/2.json`（五表 + record_tastes/wishlist_tastes 两关联）。此后只加 Migration，不改已有列语义
+- **备份格式 v2**：`data/backup/BackupModels.kt`（formatVersion=2，向前兼容读 v1）
+- **设计 token**：`ui/theme/Palette.kt` + Typography（霞鹜文楷）。口味色唯一来源仍是本文件色值表
+- **贴纸引擎**：`map/StickerFactory.kt`（D17 合成 + D12 分档 + shopId 种子旋转）。切片调用它，不要另写位图合成
+- **口味→图钉/贴纸颜色**：`data/repository/Repositories.kt` 的主导口味推导是唯一逻辑源

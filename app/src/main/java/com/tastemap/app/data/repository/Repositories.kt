@@ -80,6 +80,11 @@ class RecordRepository @Inject constructor(
      * 新建记录的最小流（F02）：建店 → 建记录 → 挂口味，单事务。
      * 注意：M0 不做同名/同点店铺去重，M1 做店铺详情时间线（F04）时再合并。
      */
+    /**
+     * 新建记录（F02，R2 完整版）：建店 → 建记录 → 挂口味，单事务。
+     * photos 为 PhotoStore 产出的相对路径列表（序列化进 records.photos 列）。
+     * 注意：暂不做同名/同点店铺去重，F04 店铺详情时间线落地时再合并。
+     */
     suspend fun addRecord(
         shopName: String,
         latitude: Double,
@@ -89,12 +94,21 @@ class RecordRepository @Inject constructor(
         rating: Int,
         comment: String,
         tasteIds: List<Long>,
+        photos: List<String> = emptyList(),
+        isOriginalPhoto: Boolean = true,
     ): Long = db.withTransaction {
         val shopId = db.shopDao().insert(
             Shop(name = shopName, latitude = latitude, longitude = longitude, address = address),
         )
         val recordId = db.mealRecordDao().insert(
-            MealRecord(shopId = shopId, dishName = dishName, rating = rating, comment = comment),
+            MealRecord(
+                shopId = shopId,
+                dishName = dishName,
+                rating = rating,
+                comment = comment,
+                photos = com.tastemap.app.data.photo.PhotoJson.encode(photos),
+                isOriginalPhoto = isOriginalPhoto,
+            ),
         )
         if (tasteIds.isNotEmpty()) {
             db.mealRecordDao().insertTastes(tasteIds.map { RecordTasteCrossRef(recordId, it) })

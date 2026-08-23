@@ -3,7 +3,7 @@ package com.tastemap.app
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import com.tastemap.app.ui.MapHomeScreen
+import com.tastemap.app.ui.nav.TasteMapNav
 import com.tastemap.app.ui.theme.TasteMapTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -13,7 +13,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             TasteMapTheme {
-                MapHomeScreen()
+                TasteMapNav()
             }
         }
     }

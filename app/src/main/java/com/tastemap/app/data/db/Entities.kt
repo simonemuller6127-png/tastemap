@@ -16,13 +16,16 @@ data class TasteTag(
 )
 
 /** 店铺（F01/F02）：口味不落库，由该店记录的口味推导（主导口味） */
-@Entity(tableName = "shops", indices = [Index("name")])
+@Entity(tableName = "shops", indices = [Index("name"), Index("amapPoiId")])
 data class Shop(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     val latitude: Double,
     val longitude: Double,
     val address: String = "",
+    val amapPoiId: String? = null,    // R2：POI 搜索建卡时写入，外卖 deeplink 备用（SPEC 预案 5）
+    val meituanPoiId: String? = null, // M2 实测美团 deeplink 时写入
+    val stickerPath: String? = null,  // 地图照片贴纸（F18d/D17）：相对 App 私有目录的路径
     val createdAt: Long = System.currentTimeMillis(),
 )
 
@@ -47,7 +50,9 @@ data class MealRecord(
     val comment: String = "",
     val recipe: String = "",             // 做法备注，M5 升级为结构化菜谱
     val tastedAt: Long = System.currentTimeMillis(),
-    val isOriginalPhoto: Boolean = true, // EXIF 原图角标（D5），M1 接照片后生效
+    val isOriginalPhoto: Boolean = true, // EXIF 原图角标（D5），R2 接照片后生效
+    val photos: String = "[]",           // JSON 数组字符串：照片相对路径（App 私有目录），R2 记录流写入
+    val stickerPath: String? = null,     // 本记录的贴纸产物（F24），可选
 )
 
 /** 记录 ↔ 口味 多对多 */
@@ -95,4 +100,29 @@ data class ScheduleItem(
     val shopId: Long? = null,
     val note: String = "",
     val reminderOn: Boolean = false,
+)
+
+/** 想吃清单 ↔ 口味 多对多（schema v2，R2 的 F09 切片使用） */
+@Entity(
+    tableName = "wishlist_tastes",
+    primaryKeys = ["wishlistId", "tasteId"],
+    indices = [Index("tasteId")],
+    foreignKeys = [
+        ForeignKey(
+            entity = WishlistItem::class,
+            parentColumns = ["id"],
+            childColumns = ["wishlistId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+        ForeignKey(
+            entity = TasteTag::class,
+            parentColumns = ["id"],
+            childColumns = ["tasteId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
+data class WishlistTasteCrossRef(
+    val wishlistId: Long,
+    val tasteId: Long,
 )

@@ -15,10 +15,10 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.TasteMap">
 
-        <!-- 高德 Key：到 console.amap.com 创建应用（包名 com.tastemap.app + 签名 SHA1）后替换占位值 -->
+        <!-- 高德 Key 由构建时从 local.properties 的 AMAP_KEY 注入（不入库，AGENTS.md 硬约束 6） -->
         <meta-data
             android:name="com.amap.api.v2.apikey"
-            android:value="REPLACE_WITH_YOUR_AMAP_KEY" />
+            android:value="${AMAP_KEY}" />
 
         <activity
             android:name=".MainActivity"

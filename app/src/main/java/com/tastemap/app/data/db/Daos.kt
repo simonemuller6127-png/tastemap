@@ -80,11 +80,20 @@ interface WishlistDao {
     @Insert
     suspend fun insert(item: WishlistItem): Long
 
+    @Insert
+    suspend fun insertTastes(refs: List<WishlistTasteCrossRef>)
+
+    @Query("SELECT * FROM wishlist_tastes")
+    suspend fun getAllTasteRefs(): List<WishlistTasteCrossRef>
+
     @Query("SELECT * FROM wishlist")
     suspend fun getAll(): List<WishlistItem>
 
     @Query("DELETE FROM wishlist")
     suspend fun deleteAll()
+
+    @Query("DELETE FROM wishlist_tastes")
+    suspend fun deleteAllTastes()
 }
 
 @Dao

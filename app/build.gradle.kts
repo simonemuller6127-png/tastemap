@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -11,12 +13,20 @@ android {
     namespace = "com.tastemap.app"
     compileSdk = 35
 
+    // 高德 Key 注入：读 local.properties 的 AMAP_KEY（gitignored），缺省回退占位符，真实 Key 不入库
+    val amapKey = runCatching {
+        rootProject.file("local.properties").inputStream().use {
+            Properties().apply { load(it) }.getProperty("AMAP_KEY")
+        }
+    }.getOrNull().orEmpty().ifEmpty { "REPLACE_WITH_YOUR_AMAP_KEY" }
+
     defaultConfig {
         applicationId = "com.tastemap.app"
         minSdk = 26          // 测试机 P40 Pro = API 29；26 覆盖安卓 8+，java.time 原生可用
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0-m0"
+        manifestPlaceholders["AMAP_KEY"] = amapKey
     }
 
     buildTypes {
@@ -76,6 +86,7 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.androidx.exifinterface) // D5：EXIF 原图判定（纯本地，无网络）
 
     // 唯一允许的网络依赖（AGENTS.md 硬约束 2）。
     // 注意：3dmap 9.x 起已内置定位能力（含 AMapLocationClient），不要再加独立 location SDK，会类冲突

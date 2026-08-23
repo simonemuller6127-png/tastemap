@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class BackupManifest(
     val app: String = "tastemap",
-    val formatVersion: Int = 1,
+    val formatVersion: Int = 2,
     val exportedAt: Long = System.currentTimeMillis(),
 )
 
@@ -18,6 +18,7 @@ data class BackupData(
     val records: List<BackupRecord>,
     val recordTastes: List<BackupRecordTaste>,
     val wishlist: List<BackupWishlist>,
+    val wishlistTastes: List<BackupWishlistTaste> = emptyList(), // v2 新增，v1 备份导入时为空
     val schedules: List<BackupSchedule>,
 )
 
@@ -37,6 +38,9 @@ data class BackupShop(
     val latitude: Double,
     val longitude: Double,
     val address: String,
+    val amapPoiId: String? = null,    // v2
+    val meituanPoiId: String? = null, // v2
+    val stickerPath: String? = null,  // v2：地图照片贴纸路径（照片文件在 zip photos/ 内，R2 起）
     val createdAt: Long,
 )
 
@@ -50,10 +54,15 @@ data class BackupRecord(
     val recipe: String,
     val tastedAt: Long,
     val isOriginalPhoto: Boolean,
+    val photos: String = "[]",        // v2：JSON 数组字符串（照片相对路径）
+    val stickerPath: String? = null,  // v2
 )
 
 @Serializable
 data class BackupRecordTaste(val recordId: Long, val tasteId: Long)
+
+@Serializable
+data class BackupWishlistTaste(val wishlistId: Long, val tasteId: Long)
 
 @Serializable
 data class BackupWishlist(

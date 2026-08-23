@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tastemap.app.data.backup.BackupManager
 import com.tastemap.app.data.repository.MapRepository
-import com.tastemap.app.data.repository.RecordRepository
 import com.tastemap.app.data.repository.ShopPin
 import com.tastemap.app.data.repository.TasteRepository
 import com.tastemap.app.data.db.TasteTag
@@ -17,14 +16,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** 长按地图选中的待新建位置 */
-data class PendingPin(val latitude: Double, val longitude: Double)
-
 @HiltViewModel
 class MapHomeViewModel @Inject constructor(
     tasteRepository: TasteRepository,
     mapRepository: MapRepository,
-    private val recordRepository: RecordRepository,
     private val backupManager: BackupManager,
 ) : ViewModel() {
 
@@ -34,48 +29,11 @@ class MapHomeViewModel @Inject constructor(
     val tastes: StateFlow<List<TasteTag>> = tasteRepository.tastes
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    private val _pendingPin = MutableStateFlow<PendingPin?>(null)
-    val pendingPin: StateFlow<PendingPin?> = _pendingPin
-
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message
 
     init {
         viewModelScope.launch { tasteRepository.ensureSeeded() }
-    }
-
-    fun onMapLongPress(latitude: Double, longitude: Double) {
-        _pendingPin.value = PendingPin(latitude, longitude)
-    }
-
-    fun dismissPinSheet() {
-        _pendingPin.value = null
-    }
-
-    /** F02 最小记录流：保存后 Flow 自动刷新图钉 */
-    fun saveRecord(
-        shopName: String,
-        address: String,
-        dishName: String,
-        rating: Int,
-        comment: String,
-        tasteIds: List<Long>,
-    ) {
-        val pending = _pendingPin.value ?: return
-        viewModelScope.launch {
-            recordRepository.addRecord(
-                shopName = shopName,
-                latitude = pending.latitude,
-                longitude = pending.longitude,
-                address = address,
-                dishName = dishName,
-                rating = rating,
-                comment = comment,
-                tasteIds = tasteIds,
-            )
-            _pendingPin.value = null
-            _message.value = "已记录「$shopName」"
-        }
     }
 
     /** F06 备份 */

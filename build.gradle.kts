@@ -10,6 +10,8 @@ plugins {
 
 // 仓库路径含中文（D:\技术师范大学\...），已用 android.overridePathCheck 放行编译/aapt2；
 // 但单测类加载等仍会被 CJK 路径绊倒，构建产物统一输出到 ASCII 路径（源码不动）。
+// SPEC §6 并行协议：git worktree 会话用环境变量 TASTEMAP_BUILD_ROOT 指向各自的构建目录，防止互相覆盖。
+val tastemapBuildRoot = System.getenv("TASTEMAP_BUILD_ROOT")?.takeIf { it.isNotBlank() } ?: "D:/smellmap-build"
 allprojects {
-    layout.buildDirectory.set(file("D:/smellmap-build/${project.name}"))
+    layout.buildDirectory.set(file("$tastemapBuildRoot/${project.name}"))
 }
