@@ -12,7 +12,7 @@ call env.bat                       # 设置 JAVA_HOME/ANDROID_HOME/GRADLE_USER_H
 gradlew.bat test                   # 单元测试
 gradlew.bat :app:assembleDebug     # 构建调试包
 adb install -r D:\smellmap-build\app\outputs\apk\debug\app-debug.apk
-adb logcat | findstr /i smellmap com.amap   # 看运行日志
+adb logcat | findstr /i tastemap com.amap   # 看运行日志
 ```
 工具链位置（全在 D 盘，SPEC D10）：JDK17=`D:\jdk-17`，Git=`D:\PortableGit`，Gradle=`D:\gradle`（项目内优先用 wrapper），SDK=`D:\android-sdk`，Gradle 缓存=`D:\gradle-home`。CI：GitHub Actions 见 `.github/workflows/android.yml`。
 
@@ -40,7 +40,7 @@ adb logcat | findstr /i smellmap com.amap   # 看运行日志
 
 ## 包结构（当前，M0）
 ```
-app/src/main/java/com/smellmap/app/
+app/src/main/java/com/tastemap/app/
 ├─ data/db/          Room 实体/DAO/AppDatabase（五表：shops meal_records taste_tags record_tastes wishlist schedules）
 ├─ data/repository/  Repository 层 + 预置口味
 ├─ data/backup/      .tastemap 备份导出/导入（zip：manifest.json + data.json + photos/）

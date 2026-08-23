@@ -1,4 +1,4 @@
-package com.smellmap.app.map
+package com.tastemap.app.map
 
 import android.graphics.Bitmap
 import android.graphics.Canvas

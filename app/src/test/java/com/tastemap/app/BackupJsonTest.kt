@@ -1,10 +1,10 @@
-package com.smellmap.app
+package com.tastemap.app
 
-import com.smellmap.app.data.backup.BackupData
-import com.smellmap.app.data.backup.BackupRecord
-import com.smellmap.app.data.backup.BackupRecordTaste
-import com.smellmap.app.data.backup.BackupShop
-import com.smellmap.app.data.backup.BackupTaste
+import com.tastemap.app.data.backup.BackupData
+import com.tastemap.app.data.backup.BackupRecord
+import com.tastemap.app.data.backup.BackupRecordTaste
+import com.tastemap.app.data.backup.BackupShop
+import com.tastemap.app.data.backup.BackupTaste
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Test

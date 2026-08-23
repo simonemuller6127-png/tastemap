@@ -1,10 +1,10 @@
-package com.smellmap.app.data.repository
+package com.tastemap.app.data.repository
 
-import com.smellmap.app.data.db.AppDatabase
-import com.smellmap.app.data.db.MealRecord
-import com.smellmap.app.data.db.RecordTasteCrossRef
-import com.smellmap.app.data.db.Shop
-import com.smellmap.app.data.db.TasteTag
+import com.tastemap.app.data.db.AppDatabase
+import com.tastemap.app.data.db.MealRecord
+import com.tastemap.app.data.db.RecordTasteCrossRef
+import com.tastemap.app.data.db.Shop
+import com.tastemap.app.data.db.TasteTag
 import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine

@@ -1,4 +1,4 @@
-package com.smellmap.app.data.db
+package com.tastemap.app.data.db
 
 import android.content.Context
 import androidx.room.Database

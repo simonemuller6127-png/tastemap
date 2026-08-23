@@ -1,4 +1,4 @@
-package com.smellmap.app.ui.theme
+package com.tastemap.app.ui.theme
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme

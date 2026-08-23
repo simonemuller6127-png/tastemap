@@ -1,4 +1,4 @@
-package com.smellmap.app.data.db
+package com.tastemap.app.data.db
 
 import androidx.room.Dao
 import androidx.room.Insert

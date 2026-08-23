@@ -1,6 +1,6 @@
-package com.smellmap.app.data.repository
+package com.tastemap.app.data.repository
 
-import com.smellmap.app.data.db.TasteTag
+import com.tastemap.app.data.db.TasteTag
 
 /** 预置口味（PRD F03）。色值表同时登记在 AGENTS.md，是全局唯一来源。 */
 object PresetTastes {

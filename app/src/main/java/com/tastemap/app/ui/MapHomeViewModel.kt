@@ -1,14 +1,14 @@
-package com.smellmap.app.ui
+package com.tastemap.app.ui
 
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.smellmap.app.data.backup.BackupManager
-import com.smellmap.app.data.repository.MapRepository
-import com.smellmap.app.data.repository.RecordRepository
-import com.smellmap.app.data.repository.ShopPin
-import com.smellmap.app.data.repository.TasteRepository
-import com.smellmap.app.data.db.TasteTag
+import com.tastemap.app.data.backup.BackupManager
+import com.tastemap.app.data.repository.MapRepository
+import com.tastemap.app.data.repository.RecordRepository
+import com.tastemap.app.data.repository.ShopPin
+import com.tastemap.app.data.repository.TasteRepository
+import com.tastemap.app.data.db.TasteTag
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted

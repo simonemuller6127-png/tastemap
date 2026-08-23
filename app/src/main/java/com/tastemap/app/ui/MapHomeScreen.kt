@@ -1,4 +1,4 @@
-package com.smellmap.app.ui
+package com.tastemap.app.ui
 
 import android.Manifest
 import android.content.Context
@@ -65,9 +65,9 @@ import com.amap.api.maps.MapView
 import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.Marker
 import com.amap.api.maps.model.MarkerOptions
-import com.smellmap.app.data.db.TasteTag
-import com.smellmap.app.data.repository.ShopPin
-import com.smellmap.app.map.MarkerFactory
+import com.tastemap.app.data.db.TasteTag
+import com.tastemap.app.data.repository.ShopPin
+import com.tastemap.app.map.MarkerFactory
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 

@@ -1,15 +1,15 @@
-package com.smellmap.app.data.backup
+package com.tastemap.app.data.backup
 
 import android.content.Context
 import android.net.Uri
 import androidx.room.withTransaction
-import com.smellmap.app.data.db.AppDatabase
-import com.smellmap.app.data.db.MealRecord
-import com.smellmap.app.data.db.RecordTasteCrossRef
-import com.smellmap.app.data.db.ScheduleItem
-import com.smellmap.app.data.db.Shop
-import com.smellmap.app.data.db.TasteTag
-import com.smellmap.app.data.db.WishlistItem
+import com.tastemap.app.data.db.AppDatabase
+import com.tastemap.app.data.db.MealRecord
+import com.tastemap.app.data.db.RecordTasteCrossRef
+import com.tastemap.app.data.db.ScheduleItem
+import com.tastemap.app.data.db.Shop
+import com.tastemap.app.data.db.TasteTag
+import com.tastemap.app.data.db.WishlistItem
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

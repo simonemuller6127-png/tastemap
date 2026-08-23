@@ -1,4 +1,4 @@
-package com.smellmap.app.data.db
+package com.tastemap.app.data.db
 
 import androidx.room.Entity
 import androidx.room.ForeignKey

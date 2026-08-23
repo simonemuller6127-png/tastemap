@@ -1,4 +1,4 @@
-package com.smellmap.app.data.backup
+package com.tastemap.app.data.backup
 
 import kotlinx.serialization.Serializable
 

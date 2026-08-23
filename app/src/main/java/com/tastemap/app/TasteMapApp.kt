@@ -1,4 +1,4 @@
-package com.smellmap.app
+package com.tastemap.app
 
 import android.app.Application
 import com.amap.api.location.AMapLocationClient

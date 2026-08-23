@@ -8,11 +8,11 @@ plugins {
 }
 
 android {
-    namespace = "com.smellmap.app"
+    namespace = "com.tastemap.app"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.smellmap.app"
+        applicationId = "com.tastemap.app"
         minSdk = 26          // 测试机 P40 Pro = API 29；26 覆盖安卓 8+，java.time 原生可用
         targetSdk = 35
         versionCode = 1
