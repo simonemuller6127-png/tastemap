@@ -41,6 +41,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -78,6 +79,7 @@ private val DEFAULT_CENTER = LatLng(30.59276, 114.30525)
 @Composable
 fun MapHomeScreen(
     onCreateRecord: (latitude: Double, longitude: Double) -> Unit,
+    onOpenShop: (shopId: Long) -> Unit,
     vm: MapHomeViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -132,10 +134,12 @@ fun MapHomeScreen(
     }
 
     // 图钉随数据流刷新。M0 全量重画（数据量小），M3 按 D12 做 diff + 分档位图
+    val markerShopIds = remember { mutableStateMapOf<Marker, Long>() }
     LaunchedEffect(pins, aMapRef) {
         val map = aMapRef ?: return@LaunchedEffect
         markers.forEach { it.remove() }
         markers.clear()
+        markerShopIds.clear()
         pins.forEach { pin ->
             map.addMarker(
                 MarkerOptions()
@@ -144,7 +148,10 @@ fun MapHomeScreen(
                     .anchor(0.5f, 0.95f)
                     .title(pin.shop.name)
                     .snippet(pinSnippet(pin)),
-            )?.let(markers::add)
+            )?.let { marker ->
+                markers.add(marker)
+                markerShopIds[marker] = pin.shop.id
+            }
         }
     }
 
@@ -200,6 +207,9 @@ fun MapHomeScreen(
                         map.moveCamera(CameraUpdateFactory.newLatLngZoom(DEFAULT_CENTER, 11f))
                         map.setOnMapLongClickListener { latLng ->
                             onCreateRecord(latLng.latitude, latLng.longitude)
+                        }
+                        map.setOnInfoWindowClickListener { marker ->
+                            markerShopIds[marker]?.let(onOpenShop)
                         }
                         aMapRef = map
                         mapViewRef = this

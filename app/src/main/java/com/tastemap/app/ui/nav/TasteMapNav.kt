@@ -15,6 +15,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.tastemap.app.ui.MapHomeScreen
 import com.tastemap.app.ui.record.RecordEditScreen
+import com.tastemap.app.ui.shop.ShopDetailScreen
 
 /**
  * R0 导航骨架：10 页路由表一次定稿（SPEC §2 页面清单）。
@@ -44,6 +45,7 @@ fun TasteMapNav(navController: NavHostController = rememberNavController()) {
             // 长按地图 → 完整记录页（R2 记录流切片，替代 M0 的底部快捷面板）
             MapHomeScreen(
                 onCreateRecord = { lat, lng -> navController.navigate(Routes.recordEdit(lat, lng)) },
+                onOpenShop = { shopId -> navController.navigate(Routes.shopDetail(shopId)) },
             )
         }
         composable(
@@ -55,7 +57,12 @@ fun TasteMapNav(navController: NavHostController = rememberNavController()) {
         ) {
             RecordEditScreen(onDone = { navController.popBackStack() })
         }
-        composable(Routes.SHOP_DETAIL) { PlaceholderScreen("店铺详情 F04（R2 记录流切片）") }
+        composable(
+            Routes.SHOP_DETAIL,
+            arguments = listOf(navArgument("shopId") { type = NavType.StringType }),
+        ) {
+            ShopDetailScreen(onBack = { navController.popBackStack() })
+        }
         composable(Routes.REVIEW_FEED) { PlaceholderScreen("回顾卡片流 F07（R2 回顾日程切片）") }
         composable(Routes.SCHEDULE) { PlaceholderScreen("美食日程 F08（R2 回顾日程切片）") }
         composable(Routes.WISHLIST) { PlaceholderScreen("想吃清单 F09（R2 回顾日程切片）") }

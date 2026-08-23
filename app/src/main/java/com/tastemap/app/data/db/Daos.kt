@@ -33,6 +33,9 @@ interface ShopDao {
     fun observeAll(): Flow<List<Shop>>
 
     @Query("SELECT * FROM shops WHERE id = :id")
+    fun observeById(id: Long): Flow<Shop?>
+
+    @Query("SELECT * FROM shops WHERE id = :id")
     suspend fun getById(id: Long): Shop?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

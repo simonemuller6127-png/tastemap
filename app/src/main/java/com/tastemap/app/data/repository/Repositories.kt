@@ -75,8 +75,7 @@ class MapRepository @Inject constructor(
 @Singleton
 class RecordRepository @Inject constructor(
     private val db: AppDatabase,
-) {
-    /**
+) {    /**
      * 新建记录的最小流（F02）：建店 → 建记录 → 挂口味，单事务。
      * 注意：M0 不做同名/同点店铺去重，M1 做店铺详情时间线（F04）时再合并。
      */
@@ -114,5 +113,52 @@ class RecordRepository @Inject constructor(
             db.mealRecordDao().insertTastes(tasteIds.map { RecordTasteCrossRef(recordId, it) })
         }
         shopId
+    }
+}
+
+/** F04 店铺详情时间线的展示数据 */
+data class RecordUi(
+    val record: com.tastemap.app.data.db.MealRecord,
+    val tasteNames: List<String>,
+    val photoPaths: List<String>,
+)
+
+data class ShopDetailUi(
+    val shop: Shop?,
+    val records: List<RecordUi>,
+    val avgRating: Double,
+    val dominantTasteName: String?,
+)
+
+@Singleton
+class ShopDetailRepository @Inject constructor(
+    private val db: AppDatabase,
+) {
+    fun observe(shopId: Long): Flow<ShopDetailUi> = combine(
+        db.shopDao().observeById(shopId),
+        db.mealRecordDao().observeByShop(shopId),
+        db.mealRecordDao().observeAllTasteRefs(),
+        db.tasteTagDao().observeAll(),
+    ) { shop, records, refs, tastes ->
+        val tasteNameById = tastes.associate { it.id to it.name }
+        val refsByRecord = refs.groupBy { it.recordId }
+        val recordUis = records.map { record ->
+            RecordUi(
+                record = record,
+                tasteNames = refsByRecord[record.id].orEmpty().mapNotNull { tasteNameById[it.tasteId] },
+                photoPaths = com.tastemap.app.data.photo.PhotoJson.decode(record.photos),
+            )
+        }
+        val dominant = recordUis
+            .flatMap { it.tasteNames }
+            .groupingBy { it }
+            .eachCount()
+            .maxByOrNull { it.value }?.key
+        ShopDetailUi(
+            shop = shop,
+            records = recordUis,
+            avgRating = if (records.isEmpty()) 0.0 else records.sumOf { it.rating }.toDouble() / records.size,
+            dominantTasteName = dominant,
+        )
     }
 }
