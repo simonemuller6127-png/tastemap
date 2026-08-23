@@ -18,6 +18,8 @@ adb logcat | findstr /i tastemap com.amap   # 看运行日志
 
 **构建产物路径**：仓库路径含中文，`android.overridePathCheck` + 根 build.gradle.kts 里把 buildDirectory 重定向到了 `D:\smellmap-build\`——APK、测试报告都在那里，不要在仓库目录下找 build/。gradle wrapper 分发地址用腾讯镜像（services.gradle.org 国内不通）。
 
+**Shell 注意**：以上命令按 Windows cmd 写。若会话 shell 是 Git Bash，执行 .bat 必须用 `cmd //c "call env.bat && ..."`（`/c` 会被 MSYS 路径转换吞掉，症状是只打印 cmd 横幅、命令静默不执行、退出码 0——极其容易误判为构建成功，务必在输出里确认看到 gradle 任务日志）。
+
 ## 硬约束
 1. 架构：单模块 MVVM + Repository，分包 `data/ map/ ui/ share/ deeplink/ sticker/`（SPEC D2）。不引入 multi-module。
 2. 网络依赖只有高德 SDK。禁止引入 Retrofit/OkHttp/Firebase 等任何网络或账号相关框架（本地优先原则）。
