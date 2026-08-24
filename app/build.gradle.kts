@@ -31,7 +31,24 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false // M3 上架前再开混淆并补规则
+            // R4 前置：混淆+资源瘦身已开（规则见 proguard-rules.pro）。
+            // 正式签名：签名文件与密码放 local.properties（TASTEMAP_STORE_FILE/TASTEMAP_STORE_PASSWORD/
+            // TASTEMAP_KEY_ALIAS/TASTEMAP_KEY_PASSWORD），缺失时出未签名包——证书指纹必须与备案一致（硬约束 7）。
+            val props = Properties().apply {
+                val f = rootProject.file("local.properties")
+                if (f.exists()) f.inputStream().use { load(it) }
+            }
+            val storeFile = props.getProperty("TASTEMAP_STORE_FILE")
+            if (storeFile != null) {
+                signingConfig = signingConfigs.create("release") {
+                    this.storeFile = rootProject.file(storeFile)
+                    storePassword = props.getProperty("TASTEMAP_STORE_PASSWORD")
+                    keyAlias = props.getProperty("TASTEMAP_KEY_ALIAS")
+                    keyPassword = props.getProperty("TASTEMAP_KEY_PASSWORD")
+                }
+            }
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
