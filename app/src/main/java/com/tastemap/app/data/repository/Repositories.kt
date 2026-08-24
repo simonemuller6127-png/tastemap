@@ -11,13 +11,14 @@ import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** 地图上一个图钉的展示数据：店铺 + 主导口味颜色 + 统计 */
+/** 地图上一个贴纸/图钉的展示数据：店铺 + 主导口味颜色 + 统计 + 照片贴纸源（D17） */
 data class ShopPin(
     val shop: Shop,
     val tasteName: String?,
     val colorHex: String,
     val recordCount: Int,
     val avgRating: Double,
+    val firstPhotoPath: String?, // 最近一条记录的第一张照片（贴纸渲染用）
 )
 
 @Singleton
@@ -72,6 +73,10 @@ class MapRepository @Inject constructor(
                 }
             }
             val dominant = counts.entries.maxByOrNull { it.value }?.key?.let { tasteById[it] }
+            // 记录按 tastedAt 倒序，第一条带照片的就是贴纸源
+            val firstPhoto = shopRecords.firstOrNull { record ->
+                com.tastemap.app.data.photo.PhotoJson.decode(record.photos).isNotEmpty()
+            }?.let { com.tastemap.app.data.photo.PhotoJson.decode(it.photos).first() }
             ShopPin(
                 shop = shop,
                 tasteName = dominant?.name,
@@ -82,6 +87,7 @@ class MapRepository @Inject constructor(
                 } else {
                     shopRecords.sumOf { it.rating }.toDouble() / shopRecords.size
                 },
+                firstPhotoPath = firstPhoto,
             )
         }
     }

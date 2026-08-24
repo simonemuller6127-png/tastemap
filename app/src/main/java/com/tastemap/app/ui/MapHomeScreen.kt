@@ -70,6 +70,8 @@ import com.amap.api.maps.model.MarkerOptions
 import com.tastemap.app.data.db.TasteTag
 import com.tastemap.app.data.repository.ShopPin
 import com.tastemap.app.map.MarkerFactory
+import com.tastemap.app.map.StickerFactory
+import com.tastemap.app.map.StickerMath
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -135,9 +137,29 @@ fun MapHomeScreen(
         }
     }
 
-    // 图钉随数据流刷新。M0 全量重画（数据量小），M3 按 D12 做 diff + 分档位图
+    // F18b 反直觉缩放：滑动停止后按整级换档（D12：滑动中不处理）
+    var tier by remember { mutableStateOf(0) }
+
+    // 贴纸引擎 + 照片位图缓存（D17：photoSticker 按 shopId/档位缓存 BitmapDescriptor）
+    val stickerFactory = remember { StickerFactory(density) }
+    val photoBitmapCache = remember { HashMap<String, android.graphics.Bitmap?>() }
+    val filesDir = context.filesDir
+    fun stickerSource(pin: ShopPin): android.graphics.Bitmap? {
+        val path = pin.firstPhotoPath ?: return null
+        if (!photoBitmapCache.containsKey(path)) {
+            photoBitmapCache[path] = runCatching {
+                android.graphics.BitmapFactory.decodeFile(
+                    java.io.File(filesDir, path).path,
+                    android.graphics.BitmapFactory.Options().apply { inSampleSize = 2 },
+                )
+            }.getOrNull()
+        }
+        return photoBitmapCache[path]
+    }
+
+    // 贴纸随数据/档位刷新。全量重画（数据量小），数百贴纸时 R3 优化为 diff
     val markerShopIds = remember { mutableStateMapOf<Marker, Long>() }
-    LaunchedEffect(pins, aMapRef) {
+    LaunchedEffect(pins, aMapRef, tier) {
         val map = aMapRef ?: return@LaunchedEffect
         markers.forEach { it.remove() }
         markers.clear()
@@ -146,8 +168,8 @@ fun MapHomeScreen(
             map.addMarker(
                 MarkerOptions()
                     .position(LatLng(pin.shop.latitude, pin.shop.longitude))
-                    .icon(MarkerFactory.descriptor(pin.colorHex, 34, density))
-                    .anchor(0.5f, 0.95f)
+                    .icon(stickerFactory.photoSticker(pin.shop.id, tier, pin.colorHex, stickerSource(pin)))
+                    .anchor(0.5f, 0.5f)
                     .title(pin.shop.name)
                     .snippet(pinSnippet(pin)),
             )?.let { marker ->
@@ -216,6 +238,12 @@ fun MapHomeScreen(
                         map.setOnInfoWindowClickListener { marker ->
                             markerShopIds[marker]?.let(onOpenShop)
                         }
+                        map.setOnCameraChangeListener(object : AMap.OnCameraChangeListener {
+                            override fun onCameraChange(position: com.amap.api.maps.model.CameraPosition?) = Unit
+                            override fun onCameraChangeFinish(position: com.amap.api.maps.model.CameraPosition?) {
+                                position?.let { tier = StickerMath.tierForZoom(it.zoom.toDouble()) }
+                            }
+                        })
                         aMapRef = map
                         mapViewRef = this
                     }
