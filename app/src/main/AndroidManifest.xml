@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- 地图瓦片与 POI 需要网络；定位仅前台（PRD 非功能：隐私） -->
+    <!-- 地图瓦片与 POI 需要网络；定位仅前台（PRD 非功能：隐私）；日程提醒通知（API 33+） -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".TasteMapApp"
@@ -30,6 +31,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- F08 日程提醒（AlarmManager 到点广播） -->
+        <receiver
+            android:name=".data.schedule.ReminderReceiver"
+            android:exported="false" />
     </application>
 
 </manifest>

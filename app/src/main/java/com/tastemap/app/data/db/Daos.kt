@@ -92,11 +92,17 @@ interface WishlistDao {
     @Query("SELECT * FROM wishlist")
     suspend fun getAll(): List<WishlistItem>
 
+    @Query("SELECT * FROM wishlist WHERE id = :id")
+    suspend fun getById(id: Long): WishlistItem?
+
     @Query("DELETE FROM wishlist")
     suspend fun deleteAll()
 
     @Query("DELETE FROM wishlist_tastes")
     suspend fun deleteAllTastes()
+
+    @Query("DELETE FROM wishlist WHERE id = :id")
+    suspend fun deleteById(id: Long)
 }
 
 @Dao
@@ -104,8 +110,20 @@ interface ScheduleDao {
     @Query("SELECT * FROM schedules ORDER BY date, id")
     fun observeAll(): Flow<List<ScheduleItem>>
 
+    @Query("SELECT * FROM schedules WHERE date = :date ORDER BY id")
+    fun observeByDate(date: String): Flow<List<ScheduleItem>>
+
     @Insert
     suspend fun insert(item: ScheduleItem): Long
+
+    @Query("UPDATE schedules SET reminderOn = :on WHERE id = :id")
+    suspend fun setReminder(id: Long, on: Boolean)
+
+    @Query("SELECT * FROM schedules WHERE id = :id")
+    suspend fun getById(id: Long): ScheduleItem?
+
+    @Query("DELETE FROM schedules WHERE id = :id")
+    suspend fun deleteById(id: Long)
 
     @Query("SELECT * FROM schedules")
     suspend fun getAll(): List<ScheduleItem>

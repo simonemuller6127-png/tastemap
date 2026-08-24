@@ -66,6 +66,7 @@ import com.tastemap.app.data.db.TasteTag
 import com.tastemap.app.data.photo.PhotoStore
 import com.tastemap.app.data.repository.RecordRepository
 import com.tastemap.app.data.repository.TasteRepository
+import com.tastemap.app.data.repository.WishlistRepository
 import com.tastemap.app.map.MarkerFactory
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -82,11 +83,16 @@ class RecordEditViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     tasteRepository: TasteRepository,
     private val recordRepository: RecordRepository,
+    private val wishlistRepository: WishlistRepository,
     private val photoStore: PhotoStore,
 ) : ViewModel() {
 
     val latitude: Double = savedStateHandle.get<String>("lat")?.toDoubleOrNull() ?: 0.0
     val longitude: Double = savedStateHandle.get<String>("lng")?.toDoubleOrNull() ?: 0.0
+
+    /** 想吃清单"打卡"进入时预填店名（F09 → F02 转换） */
+    val initialShopName: String = savedStateHandle.get<String>("name") ?: ""
+    private val fromWishlistId: Long = savedStateHandle.get<String>("wid")?.toLongOrNull() ?: 0L
 
     val tastes: StateFlow<List<TasteTag>> = tasteRepository.tastes
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -150,6 +156,8 @@ class RecordEditViewModel @Inject constructor(
                     isOriginalPhoto = _photos.value.all { it.isOriginal },
                 )
             }.onSuccess {
+                // 从想吃清单打卡进入：保存成功即完成"想吃→吃过"转换，移除清单项
+                if (fromWishlistId > 0) runCatching { wishlistRepository.remove(fromWishlistId) }
                 _saved.value = true
             }.onFailure {
                 _error.value = "保存失败：${it.message}"
@@ -183,7 +191,7 @@ fun RecordEditScreen(
     val saved by vm.saved.collectAsStateWithLifecycle()
     val error by vm.error.collectAsStateWithLifecycle()
 
-    var shopName by rememberSaveable { mutableStateOf("") }
+    var shopName by rememberSaveable { mutableStateOf(vm.initialShopName) }
     var dishName by rememberSaveable { mutableStateOf("") }
     var rating by rememberSaveable { mutableStateOf(4f) }
     var comment by rememberSaveable { mutableStateOf("") }
