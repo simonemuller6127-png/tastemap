@@ -87,6 +87,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.exifinterface) // D5：EXIF 原图判定（纯本地，无网络）
+    implementation(libs.zxing.core)             // D6：卡片二维码生成/解析（纯本地，无网络）
 
     // 唯一允许的网络依赖（AGENTS.md 硬约束 2）。
     // 注意：3dmap 9.x 起已内置定位能力（含 AMapLocationClient），不要再加独立 location SDK，会类冲突

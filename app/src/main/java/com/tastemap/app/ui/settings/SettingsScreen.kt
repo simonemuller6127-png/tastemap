@@ -54,10 +54,15 @@ import javax.inject.Inject
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val tasteRepository: TasteRepository,
+    private val wishlistRepository: com.tastemap.app.data.repository.WishlistRepository,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
 ) : ViewModel() {
 
     val tastes: StateFlow<List<TasteTag>> = tasteRepository.tastes
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    private val _message = mutableStateOf<String?>(null)
+    val message: androidx.compose.runtime.State<String?> = _message
 
     fun addTaste(name: String, colorHex: String) {
         viewModelScope.launch { tasteRepository.addCustom(name, colorHex) }
@@ -65,6 +70,32 @@ class SettingsViewModel @Inject constructor(
 
     fun removeTaste(id: Long) {
         viewModelScope.launch { tasteRepository.removeCustom(id) }
+    }
+
+    /** F14 v1：从相册的卡片截图识别二维码 → 店卡加入想吃清单（无服务器闭环） */
+    fun importCard(uri: android.net.Uri) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val result = runCatching {
+                val bmp = android.graphics.BitmapFactory.decodeStream(
+                    appContext.contentResolver.openInputStream(uri),
+                ) ?: error("图片读取失败")
+                val raw = com.tastemap.app.share.QrCodec.decodeFromBitmap(bmp) ?: error("未识别到二维码")
+                com.tastemap.app.share.CardShareCodec.decode(raw) ?: error("不是味觉地图卡片")
+            }
+            result.onSuccess { payload ->
+                wishlistRepository.add(
+                    text = payload.name,
+                    note = payload.tastes.joinToString(" · ").ifBlank { "来自分享卡片" },
+                    latitude = payload.lat,
+                    longitude = payload.lng,
+                )
+                _message.value = "已把「${payload.name}」加入想吃清单"
+            }.onFailure { _message.value = "导入失败：${it.message}" }
+        }
+    }
+
+    fun consumeMessage() {
+        _message.value = null
     }
 }
 
@@ -76,9 +107,24 @@ fun SettingsScreen(
     vm: SettingsViewModel = hiltViewModel(),
 ) {
     val tastes by vm.tastes.collectAsStateWithLifecycle()
+    val message by vm.message
     var showAdd by remember { mutableStateOf(false) }
 
+    // F14 v1：从相册卡片截图识别二维码导入
+    val cardPicker = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia(),
+    ) { uri -> uri?.let(vm::importCard) }
+
+    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
+    androidx.compose.runtime.LaunchedEffect(message) {
+        message?.let {
+            snackbarHostState.showSnackbar(it)
+            vm.consumeMessage()
+        }
+    }
+
     Scaffold(
+        snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("口味管理") },
@@ -94,6 +140,24 @@ fun SettingsScreen(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            item {
+                Card {
+                    Column(Modifier.padding(12.dp)) {
+                        Text("分享", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            "从美食卡片导入（识别二维码图片）",
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.clickable {
+                                cardPicker.launch(
+                                    androidx.activity.result.PickVisualMediaRequest(
+                                        androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly,
+                                    ),
+                                )
+                            }.padding(vertical = 8.dp),
+                        )
+                    }
+                }
+            }
             items(tastes.size) { index ->
                 val taste = tastes[index]
                 Card {

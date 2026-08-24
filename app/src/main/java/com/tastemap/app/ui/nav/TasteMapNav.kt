@@ -48,7 +48,7 @@ object Routes {
     const val WISHLIST = "wishlist"                                  // F09 想吃清单
     const val RECORD_EDIT = "record_edit?lat={lat}&lng={lng}&name={name}&wid={wid}" // F02
     const val SHOP_DETAIL = "shop_detail/{shopId}"                   // F04
-    const val CARD_COMPOSER = "card_composer"                        // F13/F14（R2-④）
+    const val CARD_COMPOSER = "card_composer/{shopId}"              // F13/F14（R2-④）
     const val STICKER_STUDIO = "sticker_studio"                      // F22-F24（R2-⑤）
     const val SETTINGS = "settings"                                  // 设置（口味管理 F03 入口）
 
@@ -56,6 +56,7 @@ object Routes {
         "record_edit?lat=$lat&lng=$lng&name=${Uri.encode(name)}&wid=$wishlistId"
 
     fun shopDetail(shopId: Long) = "shop_detail/$shopId"
+    fun cardComposer(shopId: Long) = "card_composer/$shopId"
 }
 
 private data class Tab(val route: String, val label: String, val icon: @Composable () -> Unit)
@@ -144,9 +145,17 @@ fun TasteMapNav(navController: NavHostController = rememberNavController()) {
                 Routes.SHOP_DETAIL,
                 arguments = listOf(navArgument("shopId") { type = NavType.StringType }),
             ) {
-                ShopDetailScreen(onBack = { navController.popBackStack() })
+                ShopDetailScreen(
+                    onBack = { navController.popBackStack() },
+                    onComposeCard = { shopId -> navController.navigate(Routes.cardComposer(shopId)) },
+                )
             }
-            composable(Routes.CARD_COMPOSER) { PlaceholderScreen("卡片生成 F13/F14（R2-④ 分享闭环切片）") }
+            composable(
+                Routes.CARD_COMPOSER,
+                arguments = listOf(navArgument("shopId") { type = NavType.StringType }),
+            ) {
+                PlaceholderScreen("卡片生成 F13（R2-④ 下一步：Canvas 渲染 + 分享）")
+            }
             composable(Routes.STICKER_STUDIO) { PlaceholderScreen("贴纸工坊 F22-F24（R2-⑤ 工坊切片）") }
             composable(Routes.SETTINGS) { SettingsScreen(onBack = { navController.popBackStack() }) }
         }

@@ -40,6 +40,7 @@ import coil.compose.AsyncImage
 import com.tastemap.app.data.photo.PhotoStore
 import com.tastemap.app.data.repository.ShopDetailRepository
 import com.tastemap.app.data.repository.ShopDetailUi
+import com.tastemap.app.deeplink.DeeplinkRouter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -70,9 +71,11 @@ class ShopDetailViewModel @Inject constructor(
 @Composable
 fun ShopDetailScreen(
     onBack: () -> Unit,
+    onComposeCard: (shopId: Long) -> Unit,
     vm: ShopDetailViewModel = hiltViewModel(),
 ) {
     val detail by vm.detail.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     Scaffold(
         topBar = {
@@ -120,6 +123,19 @@ fun ShopDetailScreen(
                             Spacer(Modifier.width(12.dp))
                             Text(it, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.secondary)
                         }
+                    }
+                    Spacer(Modifier.size(4.dp))
+                    // F10 跳转 + F13 卡片入口
+                    Row {
+                        androidx.compose.material3.OutlinedButton(onClick = {
+                            DeeplinkRouter.navigateToShop(context, d.shop.name, d.shop.latitude, d.shop.longitude)
+                        }) { Text("导航") }
+                        Spacer(Modifier.width(8.dp))
+                        androidx.compose.material3.OutlinedButton(onClick = {
+                            DeeplinkRouter.openMeituanWithShopName(context, d.shop.name)
+                        }) { Text("外卖") }
+                        Spacer(Modifier.width(8.dp))
+                        androidx.compose.material3.OutlinedButton(onClick = { onComposeCard(d.shop.id) }) { Text("做卡片") }
                     }
                 }
             }
