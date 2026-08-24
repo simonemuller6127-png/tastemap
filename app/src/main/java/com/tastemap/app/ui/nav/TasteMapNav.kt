@@ -31,6 +31,8 @@ import com.tastemap.app.ui.MapHomeScreen
 import com.tastemap.app.ui.record.RecordEditScreen
 import com.tastemap.app.ui.review.ReviewFeedScreen
 import com.tastemap.app.ui.schedule.ScheduleScreen
+import com.tastemap.app.ui.search.SearchScreen
+import com.tastemap.app.ui.settings.SettingsScreen
 import com.tastemap.app.ui.shop.ShopDetailScreen
 import com.tastemap.app.ui.wishlist.WishlistScreen
 
@@ -103,9 +105,12 @@ fun TasteMapNav(navController: NavHostController = rememberNavController()) {
                 MapHomeScreen(
                     onCreateRecord = { lat, lng -> navController.navigate(Routes.recordEdit(lat, lng)) },
                     onOpenShop = { shopId -> navController.navigate(Routes.shopDetail(shopId)) },
+                    onOpenSettings = { navController.navigate(Routes.SETTINGS) },
                 )
             }
-            composable(Routes.SEARCH) { PlaceholderScreen("搜索筛选 F05（R2-③ 切片）") }
+            composable(Routes.SEARCH) {
+                SearchScreen(onOpenShop = { shopId -> navController.navigate(Routes.shopDetail(shopId)) })
+            }
             composable(Routes.REVIEW_FEED) {
                 ReviewFeedScreen(onOpenShop = { shopId -> navController.navigate(Routes.shopDetail(shopId)) })
             }
@@ -143,7 +148,7 @@ fun TasteMapNav(navController: NavHostController = rememberNavController()) {
             }
             composable(Routes.CARD_COMPOSER) { PlaceholderScreen("卡片生成 F13/F14（R2-④ 分享闭环切片）") }
             composable(Routes.STICKER_STUDIO) { PlaceholderScreen("贴纸工坊 F22-F24（R2-⑤ 工坊切片）") }
-            composable(Routes.SETTINGS) { PlaceholderScreen("设置（R2-③：口味管理 F03）") }
+            composable(Routes.SETTINGS) { SettingsScreen(onBack = { navController.popBackStack() }) }
         }
     }
 }

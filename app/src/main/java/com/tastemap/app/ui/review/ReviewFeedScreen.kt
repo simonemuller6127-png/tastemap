@@ -1,6 +1,7 @@
 package com.tastemap.app.ui.review
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -34,9 +36,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
 import com.tastemap.app.data.photo.PhotoStore
+import com.tastemap.app.data.db.TasteTag
 import com.tastemap.app.data.repository.ReviewCard
 import com.tastemap.app.data.repository.ReviewRepository
 import com.tastemap.app.data.repository.ScheduleRepository
+import com.tastemap.app.data.repository.TasteRepository
+import com.tastemap.app.map.MarkerFactory
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -54,6 +59,7 @@ class ReviewFeedViewModel @Inject constructor(
     private val reviewRepository: ReviewRepository,
     private val scheduleRepository: ScheduleRepository,
     private val photoStore: PhotoStore,
+    tasteRepository: TasteRepository,
 ) : ViewModel() {
 
     private val seed = MutableStateFlow(0)
@@ -62,6 +68,28 @@ class ReviewFeedViewModel @Inject constructor(
     val cards: StateFlow<List<ReviewCard>> = combine(reviewRepository.observeCards(), seed) { list, s ->
         list.shuffled(Random(LocalDate.now().toEpochDay() * 31 + s))
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    private val recommendOffset = MutableStateFlow(0)
+
+    /** F12 每日口味推荐：日期轮换 + 换一批，规则可解释 */
+    val recommendation: StateFlow<Pair<TasteTag, String>?> = combine(
+        reviewRepository.observeCards(),
+        tasteRepository.tastes,
+        recommendOffset,
+    ) { cards, tastes, offset ->
+        val nameToId = tastes.associate { it.name to it.id }
+        val usage = HashMap<Long, Int>()
+        cards.flatMap { it.tasteNames }.forEach { name ->
+            nameToId[name]?.let { usage[it] = (usage[it] ?: 0) + 1 }
+        }
+        com.tastemap.app.data.repository.DailyTasteRecommender.recommend(
+            tastes, usage, LocalDate.now().toEpochDay(), offset,
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    fun nextRecommendation() {
+        recommendOffset.value += 1
+    }
 
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message
@@ -94,6 +122,7 @@ fun ReviewFeedScreen(
     vm: ReviewFeedViewModel = hiltViewModel(),
 ) {
     val cards by vm.cards.collectAsStateWithLifecycle()
+    val recommendation by vm.recommendation.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -118,6 +147,28 @@ fun ReviewFeedScreen(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            recommendation?.let { (taste, reason) ->
+                item {
+                    Card {
+                        Row(
+                            Modifier.fillMaxWidth().padding(12.dp),
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                        ) {
+                            androidx.compose.foundation.layout.Box(
+                                Modifier.size(14.dp).background(
+                                    color = androidx.compose.ui.graphics.Color(MarkerFactory.parseColor(taste.colorHex)),
+                                    shape = androidx.compose.foundation.shape.CircleShape,
+                                ),
+                            )
+                            Column(Modifier.weight(1f).padding(start = 10.dp)) {
+                                Text("今日口味推荐 · ${taste.name}", style = MaterialTheme.typography.titleSmall)
+                                Text(reason, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            androidx.compose.material3.TextButton(onClick = vm::nextRecommendation) { Text("换一个") }
+                        }
+                    }
+                }
+            }
             items(cards.size) { index ->
                 val card = cards[index]
                 Card {

@@ -20,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.FileOpen
 import androidx.compose.material.icons.outlined.SaveAlt
 import androidx.compose.material3.Button
@@ -80,6 +81,7 @@ private val DEFAULT_CENTER = LatLng(30.59276, 114.30525)
 fun MapHomeScreen(
     onCreateRecord: (latitude: Double, longitude: Double) -> Unit,
     onOpenShop: (shopId: Long) -> Unit,
+    onOpenSettings: () -> Unit,
     vm: MapHomeViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -193,6 +195,9 @@ fun MapHomeScreen(
                             ),
                         )
                     }) { Icon(Icons.Outlined.FileOpen, contentDescription = "导入备份") }
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(Icons.Default.Settings, contentDescription = "口味管理")
+                    }
                 },
             )
         },

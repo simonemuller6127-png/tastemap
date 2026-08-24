@@ -32,6 +32,21 @@ class TasteRepository @Inject constructor(
             db.tasteTagDao().insertAll(PresetTastes.ALL)
         }
     }
+
+    /** F03 自定义口味：追加在预置之后 */
+    suspend fun addCustom(name: String, colorHex: String) {
+        if (name.isBlank()) return
+        val next = (db.tasteTagDao().getAll().maxOfOrNull { it.sortOrder } ?: 0) + 1
+        db.tasteTagDao().insertAll(
+            listOf(TasteTag(name = name.trim(), colorHex = colorHex, isPreset = false, sortOrder = next)),
+        )
+    }
+
+    /** 只允许删除自定义口味，预置口味是全局色板契约的一部分 */
+    suspend fun removeCustom(id: Long) {
+        val tag = db.tasteTagDao().getById(id) ?: return
+        if (!tag.isPreset) db.tasteTagDao().deleteById(id)
+    }
 }
 
 @Singleton

@@ -25,6 +25,9 @@ interface TasteTagDao {
 
     @Query("DELETE FROM taste_tags")
     suspend fun deleteAll()
+
+    @Query("DELETE FROM taste_tags WHERE id = :id")
+    suspend fun deleteById(id: Long)
 }
 
 @Dao
