@@ -35,6 +35,7 @@ import com.tastemap.app.ui.schedule.ScheduleScreen
 import com.tastemap.app.ui.search.SearchScreen
 import com.tastemap.app.ui.settings.SettingsScreen
 import com.tastemap.app.ui.shop.ShopDetailScreen
+import com.tastemap.app.ui.studio.StickerStudioScreen
 import com.tastemap.app.ui.wishlist.WishlistScreen
 
 /**
@@ -157,8 +158,13 @@ fun TasteMapNav(navController: NavHostController = rememberNavController()) {
             ) {
                 CardComposerScreen(onBack = { navController.popBackStack() })
             }
-            composable(Routes.STICKER_STUDIO) { PlaceholderScreen("贴纸工坊 F22-F24（R2-⑤ 工坊切片）") }
-            composable(Routes.SETTINGS) { SettingsScreen(onBack = { navController.popBackStack() }) }
+            composable(Routes.STICKER_STUDIO) { StickerStudioScreen(onBack = { navController.popBackStack() }) }
+            composable(Routes.SETTINGS) {
+                SettingsScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenStudio = { navController.navigate(Routes.STICKER_STUDIO) },
+                )
+            }
         }
     }
 }

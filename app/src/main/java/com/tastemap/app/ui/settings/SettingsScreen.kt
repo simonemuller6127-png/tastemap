@@ -104,6 +104,7 @@ class SettingsViewModel @Inject constructor(
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    onOpenStudio: (() -> Unit)? = null,
     vm: SettingsViewModel = hiltViewModel(),
 ) {
     val tastes by vm.tastes.collectAsStateWithLifecycle()
@@ -155,6 +156,13 @@ fun SettingsScreen(
                                 )
                             }.padding(vertical = 8.dp),
                         )
+                        onOpenStudio?.let { open ->
+                            Text(
+                                "贴纸工坊（照片做成手绘贴纸）",
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.clickable { open() }.padding(vertical = 8.dp),
+                            )
+                        }
                     }
                 }
             }
