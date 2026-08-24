@@ -36,6 +36,17 @@
         <receiver
             android:name=".data.schedule.ReminderReceiver"
             android:exported="false" />
+
+        <!-- F13 卡片分享（cache 临时图，只授予接收方读权限） -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

@@ -28,6 +28,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.tastemap.app.ui.MapHomeScreen
+import com.tastemap.app.ui.card.CardComposerScreen
 import com.tastemap.app.ui.record.RecordEditScreen
 import com.tastemap.app.ui.review.ReviewFeedScreen
 import com.tastemap.app.ui.schedule.ScheduleScreen
@@ -154,7 +155,7 @@ fun TasteMapNav(navController: NavHostController = rememberNavController()) {
                 Routes.CARD_COMPOSER,
                 arguments = listOf(navArgument("shopId") { type = NavType.StringType }),
             ) {
-                PlaceholderScreen("卡片生成 F13（R2-④ 下一步：Canvas 渲染 + 分享）")
+                CardComposerScreen(onBack = { navController.popBackStack() })
             }
             composable(Routes.STICKER_STUDIO) { PlaceholderScreen("贴纸工坊 F22-F24（R2-⑤ 工坊切片）") }
             composable(Routes.SETTINGS) { SettingsScreen(onBack = { navController.popBackStack() }) }
