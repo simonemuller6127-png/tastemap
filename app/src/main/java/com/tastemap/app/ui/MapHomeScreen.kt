@@ -226,11 +226,10 @@ fun MapHomeScreen(
         runCatching {
             val options = com.amap.api.maps.model.CustomMapStyleOptions()
             if (styleEnabled) {
+                // 每次从 assets 覆盖拷贝：样式随版本迭代（R3 现场调参）
                 val file = java.io.File(context.filesDir, "handdrawn_style.json")
-                if (!file.exists()) {
-                    context.assets.open("mapstyle/handdrawn.json").use { input ->
-                        file.outputStream().use { input.copyTo(it) }
-                    }
+                context.assets.open("mapstyle/handdrawn.json").use { input ->
+                    file.outputStream().use { input.copyTo(it) }
                 }
                 options.setEnable(true).setStyleDataPath(file.path)
             } else {
