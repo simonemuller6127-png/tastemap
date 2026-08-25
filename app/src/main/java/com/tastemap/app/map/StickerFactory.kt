@@ -21,18 +21,21 @@ object StickerMath {
         return (m - 3L).toInt()
     }
 
-    /** D12 分档：zoom 越小贴纸越大（反直觉缩放 F18b） */
+    /** D12 分档：zoom 越小贴纸越大（反直觉缩放 F18b）。R3 实测回调：尺寸收敛，避免低倍视野贴纸糊脸 */
     fun tierForZoom(zoom: Double): Int = when {
         zoom >= 16.0 -> 0 // 常规贴纸
-        zoom >= 14.0 -> 1 // 中档
-        else -> 2         // 大贴纸（视口内评分前列，每屏 ≤12，由调用方筛选）
+        zoom >= 13.5 -> 1 // 中档
+        else -> 2         // 大贴纸（仅打卡 Top N 显示，其余淡出）
     }
 
     fun tierPixelSize(tier: Int): Int = when (tier) {
-        0 -> 48
-        1 -> 96
-        else -> 192
+        0 -> 40
+        1 -> 72
+        else -> 128
     }
+
+    /** 低倍视野（档 2）最多同屏贴纸数，其余淡出（F18b：每屏 ≤12，取打卡数优先） */
+    fun visibleLimitForTier(tier: Int): Int = if (tier >= 2) 10 else Int.MAX_VALUE
 }
 
 /**

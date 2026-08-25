@@ -166,6 +166,7 @@ fun SearchScreen(
                 )
             } else {
                 LazyColumn(
+                    Modifier.fillMaxWidth().weight(1f),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 16.dp),
                 ) {

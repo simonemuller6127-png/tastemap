@@ -17,6 +17,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -71,11 +72,24 @@ private val tabs = listOf(
     Tab(Routes.WISHLIST, "想吃") { Icon(Icons.Default.FavoriteBorder, contentDescription = null) },
 )
 
+/** F15：外部分享进入时预填的记录信息 */
+data class PendingRecord(val latitude: Double, val longitude: Double, val shopName: String?)
+
 @Composable
-fun TasteMapNav(navController: NavHostController = rememberNavController()) {
+fun TasteMapNav(
+    navController: NavHostController = rememberNavController(),
+    initialRecord: PendingRecord? = null,
+) {
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
     val showBottomBar = tabs.any { it.route == currentRoute }
+
+    // 分享进入：落地地图后自动打开预填好的记录页
+    LaunchedEffect(Unit) {
+        initialRecord?.let {
+            navController.navigate(Routes.recordEdit(it.latitude, it.longitude, it.shopName ?: ""))
+        }
+    }
 
     Scaffold(
         bottomBar = {
@@ -106,7 +120,9 @@ fun TasteMapNav(navController: NavHostController = rememberNavController()) {
         ) {
             composable(Routes.MAP_HOME) {
                 MapHomeScreen(
-                    onCreateRecord = { lat, lng -> navController.navigate(Routes.recordEdit(lat, lng)) },
+                    onCreateRecord = { lat, lng, name ->
+                        navController.navigate(Routes.recordEdit(lat, lng, name ?: ""))
+                    },
                     onOpenShop = { shopId -> navController.navigate(Routes.shopDetail(shopId)) },
                     onOpenSettings = { navController.navigate(Routes.SETTINGS) },
                 )

@@ -37,6 +37,20 @@
             android:name=".data.schedule.ReminderReceiver"
             android:exported="false" />
 
+        <!-- F15：系统分享目标（点评/美团/小红书等 → 分享到味觉地图建卡） -->
+        <activity
+            android:name=".ShareReceiverActivity"
+            android:exported="true"
+            android:label="添加到味觉地图"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+
         <!-- F13 卡片分享（cache 临时图，只授予接收方读权限） -->
         <provider
             android:name="androidx.core.content.FileProvider"

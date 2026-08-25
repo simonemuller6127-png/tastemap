@@ -28,10 +28,17 @@ class StickerMathTest {
     }
 
     @Test
-    fun `tier pixel sizes are 48 96 192`() {
-        assertEquals(48, StickerMath.tierPixelSize(0))
-        assertEquals(96, StickerMath.tierPixelSize(1))
-        assertEquals(192, StickerMath.tierPixelSize(2))
-        assertEquals(192, StickerMath.tierPixelSize(99)) // 未知档兜底最大
+    fun `tier pixel sizes are 40 72 128`() {
+        assertEquals(40, StickerMath.tierPixelSize(0))
+        assertEquals(72, StickerMath.tierPixelSize(1))
+        assertEquals(128, StickerMath.tierPixelSize(2))
+        assertEquals(128, StickerMath.tierPixelSize(99)) // 未知档兜底最大
+    }
+
+    @Test
+    fun `low tier limits visible stickers`() {
+        assertEquals(Int.MAX_VALUE, StickerMath.visibleLimitForTier(0))
+        assertEquals(Int.MAX_VALUE, StickerMath.visibleLimitForTier(1))
+        assertEquals(10, StickerMath.visibleLimitForTier(2))
     }
 }

@@ -1,0 +1,14 @@
+[
+  { "featureType": "background", "stylers": { "color": "#f7f2e7" } },
+  { "featureType": "land", "stylers": { "color": "#f7f2e7" } },
+  { "featureType": "water", "stylers": { "color": "#bcd6dd" } },
+  { "featureType": "green", "stylers": { "color": "#d4dcc0" } },
+  { "featureType": "road", "elementType": "geometry.fill", "stylers": { "color": "#f0e6cc" } },
+  { "featureType": "road", "elementType": "geometry.stroke", "stylers": { "color": "#d8c9a3" } },
+  { "featureType": "road", "elementType": "labels", "stylers": { "color": "#6b6357" } },
+  { "featureType": "highway", "elementType": "geometry.fill", "stylers": { "color": "#ecd9a8" } },
+  { "featureType": "building", "stylers": { "visibility": "off" } },
+  { "featureType": "poi", "stylers": { "visibility": "off" } },
+  { "featureType": "manland", "stylers": { "visibility": "off" } },
+  { "featureType": "label", "elementType": "labels", "stylers": { "color": "#6b6357" } }
+]

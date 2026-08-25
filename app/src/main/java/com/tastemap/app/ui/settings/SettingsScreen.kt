@@ -55,11 +55,20 @@ import javax.inject.Inject
 class SettingsViewModel @Inject constructor(
     private val tasteRepository: TasteRepository,
     private val wishlistRepository: com.tastemap.app.data.repository.WishlistRepository,
+    private val prefs: com.tastemap.app.util.Prefs,
     @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
 ) : ViewModel() {
 
     val tastes: StateFlow<List<TasteTag>> = tasteRepository.tastes
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** F18 手绘纸面底图开关（试验项，效果在真机上迭代） */
+    val handdrawnStyle: StateFlow<Boolean> = prefs.handdrawnMapStyle
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    fun setHanddrawnStyle(enabled: Boolean) {
+        viewModelScope.launch { prefs.setHanddrawnMapStyle(enabled) }
+    }
 
     private val _message = mutableStateOf<String?>(null)
     val message: androidx.compose.runtime.State<String?> = _message
@@ -109,6 +118,7 @@ fun SettingsScreen(
 ) {
     val tastes by vm.tastes.collectAsStateWithLifecycle()
     val message by vm.message
+    val handdrawn by vm.handdrawnStyle.collectAsStateWithLifecycle()
     var showAdd by remember { mutableStateOf(false) }
 
     // F14 v1：从相册卡片截图识别二维码导入
@@ -141,6 +151,30 @@ fun SettingsScreen(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            item {
+                Card {
+                    Column(Modifier.padding(12.dp)) {
+                        Text("外观", style = MaterialTheme.typography.titleSmall)
+                        Row(
+                            Modifier.fillMaxSize().padding(vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text("手绘纸面底图（试验）", style = MaterialTheme.typography.bodyLarge)
+                                Text(
+                                    "把地图换成米白纸面淡彩风，关闭即恢复标准地图",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            androidx.compose.material3.Switch(
+                                checked = handdrawn,
+                                onCheckedChange = { vm.setHanddrawnStyle(it) },
+                            )
+                        }
+                    }
+                }
+            }
             item {
                 Card {
                     Column(Modifier.padding(12.dp)) {

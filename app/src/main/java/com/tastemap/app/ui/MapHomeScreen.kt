@@ -22,7 +22,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.FileOpen
+import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material.icons.outlined.SaveAlt
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -72,6 +74,7 @@ import com.tastemap.app.data.repository.ShopPin
 import com.tastemap.app.map.MarkerFactory
 import com.tastemap.app.map.StickerFactory
 import com.tastemap.app.map.StickerMath
+import com.tastemap.app.sticker.StickerFilters
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -81,7 +84,7 @@ private val DEFAULT_CENTER = LatLng(30.59276, 114.30525)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapHomeScreen(
-    onCreateRecord: (latitude: Double, longitude: Double) -> Unit,
+    onCreateRecord: (latitude: Double, longitude: Double, shopName: String?) -> Unit,
     onOpenShop: (shopId: Long) -> Unit,
     onOpenSettings: () -> Unit,
     vm: MapHomeViewModel = hiltViewModel(),
@@ -139,8 +142,9 @@ fun MapHomeScreen(
 
     // F18b 反直觉缩放：滑动停止后按整级换档（D12：滑动中不处理）
     var tier by remember { mutableStateOf(0) }
+    var renderedTierOnce by remember { mutableStateOf(false) }
 
-    // 贴纸引擎 + 照片位图缓存（D17：photoSticker 按 shopId/档位缓存 BitmapDescriptor）
+    // 贴纸引擎 + 照片位图缓存（D17）。R3 反馈修正：贴纸先过水彩滤镜（D13 降级链的手绘化）
     val stickerFactory = remember { StickerFactory(density) }
     val photoBitmapCache = remember { HashMap<String, android.graphics.Bitmap?>() }
     val filesDir = context.filesDir
@@ -148,34 +152,94 @@ fun MapHomeScreen(
         val path = pin.firstPhotoPath ?: return null
         if (!photoBitmapCache.containsKey(path)) {
             photoBitmapCache[path] = runCatching {
-                android.graphics.BitmapFactory.decodeFile(
+                val raw = android.graphics.BitmapFactory.decodeFile(
                     java.io.File(filesDir, path).path,
                     android.graphics.BitmapFactory.Options().apply { inSampleSize = 2 },
                 )
+                raw?.let { StickerFilters.apply(it, StickerFilters.Style.WATERCOLOR) }
             }.getOrNull()
         }
         return photoBitmapCache[path]
     }
 
-    // 贴纸随数据/档位刷新。全量重画（数据量小），数百贴纸时 R3 优化为 diff
     val markerShopIds = remember { mutableStateMapOf<Marker, Long>() }
-    LaunchedEffect(pins, aMapRef, tier) {
-        val map = aMapRef ?: return@LaunchedEffect
-        markers.forEach { it.remove() }
-        markers.clear()
-        markerShopIds.clear()
-        pins.forEach { pin ->
-            map.addMarker(
-                MarkerOptions()
-                    .position(LatLng(pin.shop.latitude, pin.shop.longitude))
-                    .icon(stickerFactory.photoSticker(pin.shop.id, tier, pin.colorHex, stickerSource(pin)))
-                    .anchor(0.5f, 0.5f)
-                    .title(pin.shop.name)
-                    .snippet(pinSnippet(pin)),
-            )?.let { marker ->
-                markers.add(marker)
-                markerShopIds[marker] = pin.shop.id
+    val pinByShopId = remember { mutableStateMapOf<Long, ShopPin>() }
+
+    /** 低倍视野只显示打卡 Top N，其余淡出（F18b：避免贴纸糊满屏） */
+    fun visiblePins(): List<ShopPin> {
+        val limit = StickerMath.visibleLimitForTier(tier)
+        if (pins.size <= limit) return pins
+        return pins.sortedWith(
+            compareByDescending<ShopPin> { it.recordCount }.thenByDescending { it.avgRating },
+        ).take(limit)
+    }
+
+    /** 增量同步贴纸：淡出的移除、新店新增、已有店铺**就地 setIcon**（不重建，换档不闪） */
+    fun syncMarkers(map: AMap) {
+        val visible = visiblePins()
+        val visibleIds = visible.map { it.shop.id }.toSet()
+        markers.removeAll { marker ->
+            val id = markerShopIds[marker]
+            if (id == null || id !in visibleIds) {
+                marker.remove()
+                markerShopIds.remove(marker)
+                true
+            } else {
+                false
             }
+        }
+        visible.forEach { pin ->
+            val icon = stickerFactory.photoSticker(pin.shop.id, tier, pin.colorHex, stickerSource(pin))
+            val existing = markers.firstOrNull { markerShopIds[it] == pin.shop.id }
+            if (existing == null) {
+                map.addMarker(
+                    MarkerOptions()
+                        .position(LatLng(pin.shop.latitude, pin.shop.longitude))
+                        .icon(icon)
+                        .anchor(0.5f, 0.5f)
+                        .title(pin.shop.name)
+                        .snippet(pinSnippet(pin)),
+                )?.let { marker ->
+                    markers.add(marker)
+                    markerShopIds[marker] = pin.shop.id
+                }
+            } else {
+                existing.setIcon(icon)
+                existing.position = LatLng(pin.shop.latitude, pin.shop.longitude)
+            }
+        }
+    }
+
+    LaunchedEffect(pins, aMapRef) {
+        pinByShopId.clear()
+        pins.forEach { pinByShopId[it.shop.id] = it }
+        aMapRef?.let(::syncMarkers)
+    }
+    LaunchedEffect(tier) {
+        if (renderedTierOnce) aMapRef?.let(::syncMarkers)
+        renderedTierOnce = true
+    }
+
+    // F18 手绘纸面底图：开关在设置页，样式文件随包分发（R3 现场调参）
+    val styleEnabled by remember {
+        com.tastemap.app.util.Prefs(context).handdrawnMapStyle
+    }.collectAsStateWithLifecycle(initialValue = false)
+    LaunchedEffect(aMapRef, styleEnabled) {
+        val map = aMapRef ?: return@LaunchedEffect
+        runCatching {
+            val options = com.amap.api.maps.model.CustomMapStyleOptions()
+            if (styleEnabled) {
+                val file = java.io.File(context.filesDir, "handdrawn_style.json")
+                if (!file.exists()) {
+                    context.assets.open("mapstyle/handdrawn.json").use { input ->
+                        file.outputStream().use { input.copyTo(it) }
+                    }
+                }
+                options.setEnable(true).setStyleDataPath(file.path)
+            } else {
+                options.setEnable(false)
+            }
+            map.setCustomMapStyle(options)
         }
     }
 
@@ -197,8 +261,43 @@ fun MapHomeScreen(
         }
     }
 
+    // R3 反馈：一键在当前位置建卡（不用长按找位置）
+    fun recordHere() {
+        if (!context.hasLocationPermission()) {
+            locationPermissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                ),
+            )
+            return
+        }
+        runCatching {
+            val client = AMapLocationClient(context)
+            client.setLocationListener { loc ->
+                if (loc.errorCode == 0) onCreateRecord(loc.latitude, loc.longitude, null)
+                client.stopLocation()
+                client.onDestroy()
+            }
+            client.setLocationOption(
+                AMapLocationClientOption().apply {
+                    isOnceLocation = true
+                    locationMode = AMapLocationClientOption.AMapLocationMode.Hight_Accuracy
+                },
+            )
+            client.startLocation()
+        }
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = ::recordHere,
+                icon = { Icon(Icons.Outlined.MyLocation, contentDescription = null) },
+                text = { Text("在此记录") },
+            )
+        },
         topBar = {
             TopAppBar(
                 title = { Text("味觉地图") },
@@ -233,10 +332,23 @@ fun MapHomeScreen(
                         map.uiSettings.isRotateGesturesEnabled = false
                         map.moveCamera(CameraUpdateFactory.newLatLngZoom(DEFAULT_CENTER, 11f))
                         map.setOnMapLongClickListener { latLng ->
-                            onCreateRecord(latLng.latitude, latLng.longitude)
+                            onCreateRecord(latLng.latitude, latLng.longitude, null)
                         }
                         map.setOnInfoWindowClickListener { marker ->
                             markerShopIds[marker]?.let(onOpenShop)
+                        }
+                        // R3 反馈：点击地图上任何 POI（店铺名）直接建卡，预填店名
+                        map.setOnPOIClickListener { poi ->
+                            onCreateRecord(poi.coordinate.latitude, poi.coordinate.longitude, poi.name)
+                        }
+                        // R3 反馈：定位蓝点（有权限即开启）
+                        if (ctx.hasLocationPermission()) {
+                            runCatching {
+                                map.myLocationStyle = com.amap.api.maps.model.MyLocationStyle()
+                                    .myLocationType(com.amap.api.maps.model.MyLocationStyle.LOCATION_TYPE_SHOW)
+                                map.isMyLocationEnabled = true
+                                map.uiSettings.isMyLocationButtonEnabled = false
+                            }
                         }
                         map.setOnCameraChangeListener(object : AMap.OnCameraChangeListener {
                             override fun onCameraChange(position: com.amap.api.maps.model.CameraPosition?) = Unit

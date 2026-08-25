@@ -81,7 +81,7 @@ import javax.inject.Inject
 @HiltViewModel
 class RecordEditViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    tasteRepository: TasteRepository,
+    private val tasteRepository: TasteRepository,
     private val recordRepository: RecordRepository,
     private val wishlistRepository: WishlistRepository,
     private val photoStore: PhotoStore,
@@ -173,6 +173,13 @@ class RecordEditViewModel @Inject constructor(
     /** 供 UI 加载缩略图：相对路径 → 私有目录绝对路径 */
     fun photoFile(relativePath: String): File = photoStore.fileOf(relativePath)
 
+    /** R3 反馈：自定义口味就地创建并自动选中（F03） */
+    fun addCustomTaste(name: String, colorHex: String, onCreated: (TasteTag) -> Unit) {
+        viewModelScope.launch {
+            tasteRepository.addCustom(name, colorHex)?.let(onCreated)
+        }
+    }
+
     companion object {
         const val MAX_PHOTOS = 9
     }
@@ -196,8 +203,21 @@ fun RecordEditScreen(
     var rating by rememberSaveable { mutableStateOf(4f) }
     var comment by rememberSaveable { mutableStateOf("") }
     val selectedTastes = remember { mutableStateListOf<Long>() }
+    var showAddTaste by remember { mutableStateOf(false) }
 
     LaunchedEffect(saved) { if (saved) onDone() }
+
+    if (showAddTaste) {
+        InlineAddTasteDialog(
+            onDismiss = { showAddTaste = false },
+            onConfirm = { name, color ->
+                vm.addCustomTaste(name, color) { tag ->
+                    if (tag.id !in selectedTastes) selectedTastes.add(tag.id)
+                }
+                showAddTaste = false
+            },
+        )
+    }
 
     val picker = rememberLauncherForActivityResult(
         ActivityResultContracts.PickMultipleVisualMedia(RecordEditViewModel.MAX_PHOTOS),
@@ -326,6 +346,12 @@ fun RecordEditScreen(
                         },
                     )
                 }
+                // R3 反馈：自定义口味直接在这里建（F03），不用去设置页
+                FilterChip(
+                    selected = false,
+                    onClick = { showAddTaste = true },
+                    label = { Text("+ 自定义") },
+                )
             }
 
             OutlinedTextField(
@@ -353,5 +379,61 @@ fun RecordEditScreen(
             }
         }
     }
+}
+
+/** R3 反馈：自定义口味就地建（F03），配色用古风推荐色板 */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun InlineAddTasteDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (name: String, colorHex: String) -> Unit,
+) {
+    var name by remember { mutableStateOf("") }
+    var color by remember { mutableStateOf(com.tastemap.app.data.repository.PresetTastes.GUOFENG_PALETTE.first().second) }
+
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("自定义口味") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("口味名（如：麻、奶香、锅气）") },
+                    singleLine = true,
+                )
+                Text("选个颜色（古风配色）", style = MaterialTheme.typography.labelMedium)
+                androidx.compose.foundation.layout.FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    com.tastemap.app.data.repository.PresetTastes.GUOFENG_PALETTE.forEach { (colorName, hex) ->
+                        androidx.compose.material3.FilterChip(
+                            selected = color == hex,
+                            onClick = { color = hex },
+                            label = { Text(colorName) },
+                            leadingIcon = {
+                                Box(
+                                    Modifier.size(10.dp).background(
+                                        color = Color(MarkerFactory.parseColor(hex)),
+                                        shape = CircleShape,
+                                    ),
+                                )
+                            },
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(
+                onClick = { onConfirm(name, color) },
+                enabled = name.isNotBlank(),
+            ) { Text("创建") }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) { Text("取消") }
+        },
+    )
 }
 
