@@ -17,6 +17,7 @@ coroutines = "1.9.0"
 exifinterface = "1.3.7"
 zxing = "3.5.3"
 amap3d = "10.0.600"
+amapSearch = "9.7.0" # 9.7.1 与 3dmap 10.0.600 重复打包 utils.core.api，降级规避
 # amap location 独立 SDK 已移除：3dmap 9.x 起内置定位，叠加会 duplicate class
 junit = "4.13.2"
 androidxJunit = "1.2.1"
@@ -48,6 +49,7 @@ kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 amap-map3d = { group = "com.amap.api", name = "3dmap", version.ref = "amap3d" }
+amap-search = { group = "com.amap.api", name = "search", version.ref = "amapSearch" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxJunit" }
 espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }

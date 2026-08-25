@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -268,6 +269,17 @@ fun MapHomeScreen(
             )
             return
         }
+        // 先用系统最后已知位置秒回（GPS/网络缓存），拿不到再异步定位
+        val lm = context.getSystemService(Context.LOCATION_SERVICE) as android.location.LocationManager
+        val last = runCatching {
+            lm.getLastKnownLocation(android.location.LocationManager.GPS_PROVIDER)
+                ?: lm.getLastKnownLocation(android.location.LocationManager.NETWORK_PROVIDER)
+                ?: lm.getLastKnownLocation(android.location.LocationManager.PASSIVE_PROVIDER)
+        }.getOrNull()
+        if (last != null) {
+            onCreateRecord(last.latitude, last.longitude, null)
+            return
+        }
         runCatching {
             val client = AMapLocationClient(context)
             client.setLocationListener { loc ->
@@ -337,11 +349,11 @@ fun MapHomeScreen(
                         map.setOnPOIClickListener { poi ->
                             onCreateRecord(poi.coordinate.latitude, poi.coordinate.longitude, poi.name)
                         }
-                        // R3 反馈：定位蓝点（有权限即开启）
+                        // R3 反馈④：定位蓝点 + SDK 托管定位（首次定位成功自动把相机移过去）
                         if (ctx.hasLocationPermission()) {
                             runCatching {
                                 map.myLocationStyle = com.amap.api.maps.model.MyLocationStyle()
-                                    .myLocationType(com.amap.api.maps.model.MyLocationStyle.LOCATION_TYPE_SHOW)
+                                    .myLocationType(com.amap.api.maps.model.MyLocationStyle.LOCATION_TYPE_LOCATE)
                                 map.isMyLocationEnabled = true
                                 map.uiSettings.isMyLocationButtonEnabled = false
                             }
@@ -367,6 +379,28 @@ fun MapHomeScreen(
                     }
                 },
             )
+            // F18 纸面感（R3 二次反馈）：样式换色之上再叠纸纹（正片叠底），纹理才是纸感的来源
+            if (styleEnabled) {
+                val overlayTile = remember { com.tastemap.app.ui.widget.mapPaperOverlayTile() }
+                Canvas(Modifier.fillMaxSize()) {
+                    val tileInt = (96.dp.toPx()).toInt().coerceAtLeast(8)
+                    var y = 0
+                    while (y < size.height.toInt()) {
+                        var x = 0
+                        while (x < size.width.toInt()) {
+                            drawImage(
+                                overlayTile,
+                                dstOffset = androidx.compose.ui.unit.IntOffset(x, y),
+                                dstSize = androidx.compose.ui.unit.IntSize(tileInt, tileInt),
+                                alpha = 0.5f,
+                                blendMode = androidx.compose.ui.graphics.BlendMode.Multiply,
+                            )
+                            x += tileInt
+                        }
+                        y += tileInt
+                    }
+                }
+            }
             if (pins.isEmpty()) {
                 Surface(
                     modifier = Modifier

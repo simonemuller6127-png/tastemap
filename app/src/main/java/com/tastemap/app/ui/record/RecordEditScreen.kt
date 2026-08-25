@@ -55,6 +55,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
@@ -84,11 +85,20 @@ class RecordEditViewModel @Inject constructor(
     private val tasteRepository: TasteRepository,
     private val recordRepository: RecordRepository,
     private val wishlistRepository: WishlistRepository,
+    private val poiRepository: com.tastemap.app.data.repository.PoiRepository,
     private val photoStore: PhotoStore,
 ) : ViewModel() {
 
-    val latitude: Double = savedStateHandle.get<String>("lat")?.toDoubleOrNull() ?: 0.0
-    val longitude: Double = savedStateHandle.get<String>("lng")?.toDoubleOrNull() ?: 0.0
+    /** 坐标可变：POI 搜索选中或剪贴板解析后更新（R3 反馈③） */
+    private val _latitude = MutableStateFlow(savedStateHandle.get<String>("lat")?.toDoubleOrNull() ?: 0.0)
+    private val _longitude = MutableStateFlow(savedStateHandle.get<String>("lng")?.toDoubleOrNull() ?: 0.0)
+    val latitude: StateFlow<Double> = _latitude
+    val longitude: StateFlow<Double> = _longitude
+
+    fun setLocation(lat: Double, lng: Double) {
+        _latitude.value = lat
+        _longitude.value = lng
+    }
 
     /** 想吃清单"打卡"进入时预填店名（F09 → F02 转换） */
     val initialShopName: String = savedStateHandle.get<String>("name") ?: ""
@@ -110,6 +120,22 @@ class RecordEditViewModel @Inject constructor(
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
+
+    /** 高德店铺搜索（R3 反馈③：地图搜索定位建卡） */
+    private val _poiHits = MutableStateFlow<List<com.tastemap.app.data.repository.PoiHit>>(emptyList())
+    val poiHits: StateFlow<List<com.tastemap.app.data.repository.PoiHit>> = _poiHits
+
+    private val _poiSearching = MutableStateFlow(false)
+    val poiSearching: StateFlow<Boolean> = _poiSearching
+
+    fun searchPois(keyword: String) {
+        if (keyword.isBlank()) return
+        viewModelScope.launch {
+            _poiSearching.value = true
+            _poiHits.value = poiRepository.search(keyword, _latitude.value, _longitude.value)
+            _poiSearching.value = false
+        }
+    }
 
     init {
         viewModelScope.launch { tasteRepository.ensureSeeded() }
@@ -145,8 +171,8 @@ class RecordEditViewModel @Inject constructor(
             runCatching {
                 recordRepository.addRecord(
                     shopName = shopName.trim(),
-                    latitude = latitude,
-                    longitude = longitude,
+                    latitude = _latitude.value,
+                    longitude = _longitude.value,
                     address = "",
                     dishName = dishName.trim(),
                     rating = rating,
@@ -180,6 +206,10 @@ class RecordEditViewModel @Inject constructor(
         }
     }
 
+    fun showError(msg: String) {
+        _error.value = msg
+    }
+
     companion object {
         const val MAX_PHOTOS = 9
     }
@@ -192,11 +222,20 @@ fun RecordEditScreen(
     onDone: () -> Unit,
     vm: RecordEditViewModel = hiltViewModel(),
 ) {
+    val context = LocalContext.current
     val tastes by vm.tastes.collectAsStateWithLifecycle()
     val photos by vm.photos.collectAsStateWithLifecycle()
     val busy by vm.busy.collectAsStateWithLifecycle()
     val saved by vm.saved.collectAsStateWithLifecycle()
     val error by vm.error.collectAsStateWithLifecycle()
+    val latitude by vm.latitude.collectAsStateWithLifecycle()
+    val longitude by vm.longitude.collectAsStateWithLifecycle()
+    val poiHits by vm.poiHits.collectAsStateWithLifecycle()
+    val poiSearching by vm.poiSearching.collectAsStateWithLifecycle()
+    var showPoiSearch by remember { mutableStateOf(false) }
+    var poiKeyword by remember { mutableStateOf("") }
+    val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
+        as android.content.ClipboardManager
 
     var shopName by rememberSaveable { mutableStateOf(vm.initialShopName) }
     var dishName by rememberSaveable { mutableStateOf("") }
@@ -242,7 +281,7 @@ fun RecordEditScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                "坐标：%.5f, %.5f（离线保存）".format(vm.latitude, vm.longitude),
+                "坐标：%.5f, %.5f（离线保存）".format(latitude, longitude),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -253,6 +292,58 @@ fun RecordEditScreen(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
+            // R3 反馈③：剪贴板解析（点评/美团/小红书复制文案 → 一键提取店名坐标）+ 高德店铺搜索
+            Row {
+                androidx.compose.material3.TextButton(onClick = {
+                    val text = clipboard.primaryClip?.getItemAt(0)?.text?.toString().orEmpty()
+                    val parsed = com.tastemap.app.share.ShareTextParser.parse(text)
+                    var hitAny = false
+                    parsed.name?.let { shopName = it; hitAny = true }
+                    val plat = parsed.lat
+                    val plng = parsed.lng
+                    if (plat != null && plng != null) {
+                        vm.setLocation(plat, plng)
+                        hitAny = true
+                    }
+                    if (!hitAny) vm.showError("剪贴板里没有可解析的店名或坐标")
+                }) { Text("粘贴解析") }
+                androidx.compose.material3.TextButton(onClick = { showPoiSearch = !showPoiSearch }) {
+                    Text(if (showPoiSearch) "收起搜索" else "搜高德店铺")
+                }
+            }
+            if (showPoiSearch) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = poiKeyword,
+                        onValueChange = { poiKeyword = it },
+                        label = { Text("店名关键词（就近 5 公里）") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Button(onClick = { vm.searchPois(poiKeyword) }, enabled = poiKeyword.isNotBlank() && !poiSearching) {
+                        Text("搜")
+                    }
+                }
+                if (poiSearching) {
+                    CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+                }
+                poiHits.take(6).forEach { hit ->
+                    androidx.compose.material3.Card(Modifier.fillMaxWidth().clickable {
+                        shopName = hit.name
+                        vm.setLocation(hit.latitude, hit.longitude)
+                        showPoiSearch = false
+                    }) {
+                        Column(Modifier.padding(10.dp)) {
+                            Text(hit.name, style = MaterialTheme.typography.titleSmall)
+                            Text(
+                                hit.address,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
             OutlinedTextField(
                 value = dishName,
                 onValueChange = { dishName = it },

@@ -61,6 +61,28 @@ private fun generatePaperTile(): ImageBitmap {
 }
 
 /**
+ * 地图纸面叠加瓦片（F18，R3 反馈"没有纸的感觉"）：
+ * 不透明米白底 + 纤维点，配合 BlendMode.Multiply 叠在地图瓦片上——
+ * 纸感来自纹理而非单纯换色。96px 可平铺。
+ */
+fun mapPaperOverlayTile(): ImageBitmap {
+    val px = 96
+    val bmp = androidx.compose.ui.graphics.ImageBitmap(px, px)
+    val canvas = androidx.compose.ui.graphics.Canvas(bmp)
+    canvas.drawRect(0f, 0f, px.toFloat(), px.toFloat(), Paint().apply { color = Color(0xFFF7F2E7) })
+    val rnd = Random(7)
+    val fiber = Paint().apply { color = Color(0x10807560) }
+    val fiber2 = Paint().apply { color = Color(0x0AFFFFFF) }
+    repeat(50) {
+        canvas.drawCircle(Offset(rnd.nextFloat() * px, rnd.nextFloat() * px), rnd.nextFloat() * 1.1f + 0.3f, fiber)
+    }
+    repeat(30) {
+        canvas.drawCircle(Offset(rnd.nextFloat() * px, rnd.nextFloat() * px), rnd.nextFloat() * 1.6f + 0.4f, fiber2)
+    }
+    return bmp
+}
+
+/**
  * 不规则手绘描边：沿圆角矩形周长采样，每个点做有界随机偏移，连成一条"抖"的闭合线。
  * @param seed 稳定种子（控件 id），保证重绘不闪变
  */

@@ -109,6 +109,7 @@ dependencies {
     // 唯一允许的网络依赖（AGENTS.md 硬约束 2）。
     // 注意：3dmap 9.x 起已内置定位能力（含 AMapLocationClient），不要再加独立 location SDK，会类冲突
     implementation(libs.amap.map3d)
+    implementation(libs.amap.search) // R3 反馈：记录页搜索高德店铺定位（同属高德，SPEC D16 已登记）
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

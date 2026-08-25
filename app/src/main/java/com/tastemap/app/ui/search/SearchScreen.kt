@@ -123,66 +123,76 @@ fun SearchScreen(
     Scaffold(
         topBar = { TopAppBar(title = { Text("搜索") }) },
     ) { padding ->
-        Column(Modifier.padding(padding).fillMaxSize().padding(horizontal = 16.dp)) {
-            OutlinedTextField(
-                value = query,
-                onValueChange = { vm.query.value = it },
-                label = { Text("店名 / 菜名 / 评价（如：咸蛋黄）") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier.padding(vertical = 8.dp),
-            ) {
-                tastes.forEach { taste ->
-                    FilterChip(
-                        selected = taste.id in selected,
-                        onClick = { vm.toggleTaste(taste.id) },
-                        label = { Text(taste.name) },
-                        leadingIcon = {
-                            Row(Modifier.size(10.dp).background(color = Color(MarkerFactory.parseColor(taste.colorHex)), shape = CircleShape)) {}
-                        },
-                    )
-                }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                (1..5).forEach { r ->
-                    FilterChip(
-                        selected = minRating == r,
-                        onClick = { vm.setMinRating(r) },
-                        label = { Text("★$r+") },
-                    )
-                }
-            }
-            Spacer(Modifier.padding(4.dp))
-            if (hits.isEmpty()) {
-                Text(
-                    if (query.isBlank() && selected.isEmpty()) "输入关键词开始找你的店" else "没有匹配的店",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(vertical = 24.dp),
+        // R3 反馈⑦（二次确认）：整页一个列表——上滑时搜索框和筛选栏一起滑走，结果占满全屏
+        LazyColumn(
+            Modifier.padding(padding).fillMaxSize(),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        ) {
+            item {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { vm.query.value = it },
+                    label = { Text("店名 / 菜名 / 评价（如：咸蛋黄）") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
                 )
-            } else {
-                LazyColumn(
-                    Modifier.fillMaxWidth().weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 16.dp),
+            }
+            item {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.padding(vertical = 8.dp),
                 ) {
-                    items(hits.size) { index ->
-                        val hit = hits[index]
-                        Card(Modifier.clickable { onOpenShop(hit.shop.id) }) {
-                            Column(Modifier.padding(12.dp)) {
-                                Text(hit.shop.name, style = MaterialTheme.typography.titleMedium)
-                                Text(hit.matchedText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    if (hit.tasteNames.isNotEmpty()) {
-                                        Text(hit.tasteNames.joinToString(" · "), color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.labelLarge)
-                                        Spacer(Modifier.padding(horizontal = 4.dp))
-                                    }
-                                    Text("${hit.recordCount} 次 · 均分 %.1f".format(hit.avgRating), style = MaterialTheme.typography.labelMedium)
+                    tastes.forEach { taste ->
+                        FilterChip(
+                            selected = taste.id in selected,
+                            onClick = { vm.toggleTaste(taste.id) },
+                            label = { Text(taste.name) },
+                            leadingIcon = {
+                                Row(Modifier.size(10.dp).background(color = Color(MarkerFactory.parseColor(taste.colorHex)), shape = CircleShape)) {}
+                            },
+                        )
+                    }
+                }
+            }
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    (1..5).forEach { r ->
+                        FilterChip(
+                            selected = minRating == r,
+                            onClick = { vm.setMinRating(r) },
+                            label = { Text("★$r+") },
+                        )
+                    }
+                }
+            }
+            if (hits.isEmpty()) {
+                item {
+                    Text(
+                        if (query.isBlank() && selected.isEmpty()) "输入关键词开始找你的店" else "没有匹配的店",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 24.dp),
+                    )
+                }
+            } else {
+                items(hits.size) { index ->
+                    val hit = hits[index]
+                    Card(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .clickable { onOpenShop(hit.shop.id) },
+                    ) {
+                        Column(Modifier.padding(12.dp)) {
+                            Text(hit.shop.name, style = MaterialTheme.typography.titleMedium)
+                            Text(hit.matchedText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (hit.tasteNames.isNotEmpty()) {
+                                    Text(hit.tasteNames.joinToString(" · "), color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.labelLarge)
+                                    Spacer(Modifier.padding(horizontal = 4.dp))
                                 }
+                                Text("${hit.recordCount} 次 · 均分 %.1f".format(hit.avgRating), style = MaterialTheme.typography.labelMedium)
                             }
                         }
                     }
