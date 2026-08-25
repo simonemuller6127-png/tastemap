@@ -140,11 +140,12 @@ fun MapHomeScreen(
         }
     }
 
-    // F18b 反直觉缩放：滑动停止后按整级换档（D12：滑动中不处理）
-    var tier by remember { mutableStateOf(0) }
-    var renderedTierOnce by remember { mutableStateOf(false) }
+    // F18b 连续缩放（R3 二次反馈）：贴纸尺寸随 zoom 连续插值，滑动中节流 120ms 刷新，
+    // 就地 setIcon——消灭"一跳一跳"的档位切换
+    var zoom by remember { mutableStateOf(13.5) }
+    var lastIconRefresh by remember { mutableStateOf(0L) }
 
-    // 贴纸引擎 + 照片位图缓存（D17）。R3 反馈修正：贴纸先过水彩滤镜（D13 降级链的手绘化）
+    // 贴纸引擎 + 照片位图缓存（D17）。贴纸照片先过水彩滤镜（D13 降级链的手绘化）
     val stickerFactory = remember { StickerFactory(density) }
     val photoBitmapCache = remember { HashMap<String, android.graphics.Bitmap?>() }
     val filesDir = context.filesDir
@@ -163,19 +164,19 @@ fun MapHomeScreen(
     }
 
     val markerShopIds = remember { mutableStateMapOf<Marker, Long>() }
-    val pinByShopId = remember { mutableStateMapOf<Long, ShopPin>() }
 
     /** 低倍视野只显示打卡 Top N，其余淡出（F18b：避免贴纸糊满屏） */
     fun visiblePins(): List<ShopPin> {
-        val limit = StickerMath.visibleLimitForTier(tier)
+        val limit = StickerMath.visibleLimitForZoom(zoom)
         if (pins.size <= limit) return pins
         return pins.sortedWith(
             compareByDescending<ShopPin> { it.recordCount }.thenByDescending { it.avgRating },
         ).take(limit)
     }
 
-    /** 增量同步贴纸：淡出的移除、新店新增、已有店铺**就地 setIcon**（不重建，换档不闪） */
+    /** 按当前 zoom 的目标尺寸增量同步贴纸（就地 setIcon，不重建 Marker） */
     fun syncMarkers(map: AMap) {
+        val targetPx = (StickerMath.sizeDpForZoom(zoom) * density).toInt().coerceAtLeast(12)
         val visible = visiblePins()
         val visibleIds = visible.map { it.shop.id }.toSet()
         markers.removeAll { marker ->
@@ -189,7 +190,7 @@ fun MapHomeScreen(
             }
         }
         visible.forEach { pin ->
-            val icon = stickerFactory.photoSticker(pin.shop.id, tier, pin.colorHex, stickerSource(pin))
+            val icon = stickerFactory.descriptorAt(pin.shop.id, pin.colorHex, stickerSource(pin), targetPx)
             val existing = markers.firstOrNull { markerShopIds[it] == pin.shop.id }
             if (existing == null) {
                 map.addMarker(
@@ -205,19 +206,15 @@ fun MapHomeScreen(
                 }
             } else {
                 existing.setIcon(icon)
-                existing.position = LatLng(pin.shop.latitude, pin.shop.longitude)
             }
         }
     }
 
     LaunchedEffect(pins, aMapRef) {
-        pinByShopId.clear()
-        pins.forEach { pinByShopId[it.shop.id] = it }
         aMapRef?.let(::syncMarkers)
     }
-    LaunchedEffect(tier) {
-        if (renderedTierOnce) aMapRef?.let(::syncMarkers)
-        renderedTierOnce = true
+    LaunchedEffect(zoom) {
+        aMapRef?.let(::syncMarkers)
     }
 
     // F18 手绘纸面底图：开关在设置页，样式文件随包分发（R3 现场调参）
@@ -351,9 +348,19 @@ fun MapHomeScreen(
                             }
                         }
                         map.setOnCameraChangeListener(object : AMap.OnCameraChangeListener {
-                            override fun onCameraChange(position: com.amap.api.maps.model.CameraPosition?) = Unit
+                            override fun onCameraChange(position: com.amap.api.maps.model.CameraPosition?) {
+                                position ?: return
+                                val now = System.currentTimeMillis()
+                                if (now - lastIconRefresh > 120) {
+                                    lastIconRefresh = now
+                                    zoom = position.zoom.toDouble()
+                                }
+                            }
+
                             override fun onCameraChangeFinish(position: com.amap.api.maps.model.CameraPosition?) {
-                                position?.let { tier = StickerMath.tierForZoom(it.zoom.toDouble()) }
+                                position ?: return
+                                zoom = position.zoom.toDouble()
+                                lastIconRefresh = 0L
                             }
                         })
                         aMapRef = map

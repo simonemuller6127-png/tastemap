@@ -70,6 +70,14 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { prefs.setHanddrawnMapStyle(enabled) }
     }
 
+    /** R3 反馈：全局字号无级缩放 */
+    val fontScale: StateFlow<Float> = prefs.fontScale
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 1f)
+
+    fun setFontScale(scale: Float) {
+        viewModelScope.launch { prefs.setFontScale(scale) }
+    }
+
     private val _message = mutableStateOf<String?>(null)
     val message: androidx.compose.runtime.State<String?> = _message
 
@@ -119,6 +127,8 @@ fun SettingsScreen(
     val tastes by vm.tastes.collectAsStateWithLifecycle()
     val message by vm.message
     val handdrawn by vm.handdrawnStyle.collectAsStateWithLifecycle()
+    val fontScale by vm.fontScale.collectAsStateWithLifecycle()
+    var localFontScale by remember { mutableStateOf<Float?>(null) }
     var showAdd by remember { mutableStateOf(false) }
 
     // F14 v1：从相册卡片截图识别二维码导入
@@ -172,6 +182,21 @@ fun SettingsScreen(
                                 onCheckedChange = { vm.setHanddrawnStyle(it) },
                             )
                         }
+                        // R3 反馈：字号无级调节（拖动实时预览，松手落库）
+                        Text(
+                            "字号 ${(localFontScale ?: fontScale).times(100).toInt()}%",
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
+                        androidx.compose.material3.Slider(
+                            value = localFontScale ?: fontScale,
+                            onValueChange = { localFontScale = it },
+                            onValueChangeFinished = {
+                                localFontScale?.let { vm.setFontScale(it) }
+                                localFontScale = null
+                            },
+                            valueRange = 0.85f..1.35f,
+                        )
                     }
                 }
             }

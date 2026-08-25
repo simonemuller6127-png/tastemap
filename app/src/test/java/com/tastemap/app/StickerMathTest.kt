@@ -2,9 +2,10 @@ package com.tastemap.app
 
 import com.tastemap.app.map.StickerMath
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** D12/D17 贴纸分档与种子旋转的纯逻辑回归 */
+/** D17 连续缩放 + 种子旋转的纯逻辑回归 */
 class StickerMathTest {
 
     @Test
@@ -18,27 +19,21 @@ class StickerMathTest {
     }
 
     @Test
-    fun `zoom tiers follow counter intuitive sizing`() {
-        assertEquals(0, StickerMath.tierForZoom(17.5))
-        assertEquals(0, StickerMath.tierForZoom(16.0))
-        assertEquals(1, StickerMath.tierForZoom(14.0))
-        assertEquals(1, StickerMath.tierForZoom(15.9))
-        assertEquals(2, StickerMath.tierForZoom(11.0))
-        assertEquals(2, StickerMath.tierForZoom(3.2))
+    fun `size interpolates continuously between 28dp and 76dp`() {
+        assertEquals(28f, StickerMath.sizeDpForZoom(21.0))
+        assertEquals(76f, StickerMath.sizeDpForZoom(11.0))
+        val mid = StickerMath.sizeDpForZoom(16.0)
+        assertTrue("中段应在两端之间：$mid", mid in 28f..76f && mid != 28f && mid != 76f)
+        // 越界截断
+        assertEquals(28f, StickerMath.sizeDpForZoom(25.0))
+        assertEquals(76f, StickerMath.sizeDpForZoom(3.0))
     }
 
     @Test
-    fun `tier pixel sizes are 40 72 128`() {
-        assertEquals(40, StickerMath.tierPixelSize(0))
-        assertEquals(72, StickerMath.tierPixelSize(1))
-        assertEquals(128, StickerMath.tierPixelSize(2))
-        assertEquals(128, StickerMath.tierPixelSize(99)) // 未知档兜底最大
-    }
-
-    @Test
-    fun `low tier limits visible stickers`() {
-        assertEquals(Int.MAX_VALUE, StickerMath.visibleLimitForTier(0))
-        assertEquals(Int.MAX_VALUE, StickerMath.visibleLimitForTier(1))
-        assertEquals(10, StickerMath.visibleLimitForTier(2))
+    fun `low zoom limits visible stickers`() {
+        assertEquals(10, StickerMath.visibleLimitForZoom(10.0))
+        assertEquals(10, StickerMath.visibleLimitForZoom(13.4))
+        assertEquals(Int.MAX_VALUE, StickerMath.visibleLimitForZoom(13.5))
+        assertEquals(Int.MAX_VALUE, StickerMath.visibleLimitForZoom(18.0))
     }
 }

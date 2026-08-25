@@ -21,37 +21,36 @@ object StickerMath {
         return (m - 3L).toInt()
     }
 
-    /** D12 分档：zoom 越小贴纸越大（反直觉缩放 F18b）。R3 实测回调：尺寸收敛，避免低倍视野贴纸糊脸 */
-    fun tierForZoom(zoom: Double): Int = when {
-        zoom >= 16.0 -> 0 // 常规贴纸
-        zoom >= 13.5 -> 1 // 中档
-        else -> 2         // 大贴纸（仅打卡 Top N 显示，其余淡出）
+    /**
+     * R3 二次反馈：弃用三档跳变，改为**随 zoom 连续插值**（业界通行做法）。
+     * zoom 21 → 28dp，zoom 11 → 76dp，线性；越界截断。
+     */
+    fun sizeDpForZoom(zoom: Double): Float {
+        val t = ((21.0 - zoom) / 10.0).coerceIn(0.0, 1.0)
+        return (28f + 48f * t.toFloat())
     }
 
-    fun tierPixelSize(tier: Int): Int = when (tier) {
-        0 -> 40
-        1 -> 72
-        else -> 128
-    }
-
-    /** 低倍视野（档 2）最多同屏贴纸数，其余淡出（F18b：每屏 ≤12，取打卡数优先） */
-    fun visibleLimitForTier(tier: Int): Int = if (tier >= 2) 10 else Int.MAX_VALUE
+    /** 低倍视野（zoom < 13.5）最多同屏贴纸数，其余淡出（F18b：避免贴纸糊满屏） */
+    fun visibleLimitForZoom(zoom: Double): Int = if (zoom < 13.5) 10 else Int.MAX_VALUE
 }
 
 /**
  * 贴纸合成：白边 + 口味色描边 + 圆角方形照片 + 种子旋转 + 投影。
  * 无照片店铺给统一的手绘占位贴纸（D19 补图引导的地图端形态）。
- * 位图按 "shopId/tier" 缓存（D12：同档复用，防内存抖动）。
+ *
+ * R3 二次反馈（连续缩放）：每店只渲染一张 160px 母版 [baseBitmap]，
+ * 地图缩放时按目标尺寸缩放母版生成 descriptor（缩放位图开销极小），
+ * 配合节流的相机回调实现贴纸随地图连续呼吸缩放。
  */
 class StickerFactory(private val density: Float) {
 
-    private val cache = LruCache<String, BitmapDescriptor>(48)
+    private val baseCache = LruCache<Long, Bitmap>(48)
+    private val descriptorCache = LruCache<String, BitmapDescriptor>(96)
 
-    fun photoSticker(shopId: Long, tier: Int, colorHex: String, source: Bitmap?): BitmapDescriptor {
-        val key = "$shopId/$tier/${source != null}"
-        cache.get(key)?.let { return it }
-
-        val sizePx = (StickerMath.tierPixelSize(tier) * density).toInt().coerceAtLeast(32)
+    /** 母版：固定 160px 渲染一次（含白边/描边/旋转/投影） */
+    fun baseBitmap(shopId: Long, colorHex: String, source: Bitmap?): Bitmap {
+        baseCache.get(shopId)?.let { return it }
+        val sizePx = BASE_PX
         val bmp = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bmp)
         val rotation = StickerMath.rotationDegreesFor(shopId)
@@ -63,22 +62,23 @@ class StickerFactory(private val density: Float) {
         val outer = RectF(inset, inset, sizePx - inset, sizePx - inset)
         val radius = sizePx * 0.16f
 
-        // 投影（先画一个错位的深色圆角块）
+        // 投影
         val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(46, 59, 52, 43) }
-        canvas.drawRoundRect(RectF(outer.left + sizePx * 0.02f, outer.top + sizePx * 0.03f, outer.right + sizePx * 0.02f, outer.bottom + sizePx * 0.03f), radius, radius, shadowPaint)
+        canvas.drawRoundRect(
+            RectF(outer.left + sizePx * 0.02f, outer.top + sizePx * 0.03f, outer.right + sizePx * 0.02f, outer.bottom + sizePx * 0.03f),
+            radius, radius, shadowPaint,
+        )
 
         // 白边纸片
-        val paperPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(252, 249, 241) }
-        canvas.drawRoundRect(outer, radius, radius, paperPaint)
+        canvas.drawRoundRect(outer, radius, radius, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(252, 249, 241) })
 
-        // 照片区（内缩出白边）
+        // 照片区
         val photoInset = sizePx * 0.13f
         val photoRect = RectF(outer.left + photoInset, outer.top + photoInset, outer.right - photoInset, outer.bottom - photoInset)
         if (source != null && !source.isRecycled) {
             val clip = Path().apply { addRoundRect(photoRect, radius * 0.7f, radius * 0.7f, Path.Direction.CW) }
             canvas.save()
             canvas.clipPath(clip)
-            // 中心裁剪铺满
             val scale = maxOf(photoRect.width() / source.width, photoRect.height() / source.height)
             val dw = source.width * scale
             val dh = source.height * scale
@@ -87,7 +87,7 @@ class StickerFactory(private val density: Float) {
             canvas.drawBitmap(source, null, RectF(dx, dy, dx + dw, dy + dh), Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
             canvas.restore()
         } else {
-            // 占位贴纸：口味色圆点 + 细虚线框，提示"去补图"
+            // 占位：口味色圆点 + 细虚线框（补图引导）
             val dot = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = runCatching { Color.parseColor(colorHex) }.getOrDefault(Color.GRAY) }
             canvas.drawCircle(photoRect.centerX(), photoRect.centerY(), photoRect.width() * 0.28f, dot)
             val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -99,15 +99,31 @@ class StickerFactory(private val density: Float) {
             canvas.drawRoundRect(photoRect, radius * 0.7f, radius * 0.7f, stroke)
         }
 
-        // 口味色描边（贴纸的主视觉身份，F18：口味着色载体）
-        val border = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = runCatching { Color.parseColor(colorHex) }.getOrDefault(Color.GRAY)
-            style = Paint.Style.STROKE
-            strokeWidth = sizePx * 0.035f
-        }
-        canvas.drawRoundRect(outer, radius, radius, border)
+        // 口味色描边
+        canvas.drawRoundRect(
+            outer, radius, radius,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = runCatching { Color.parseColor(colorHex) }.getOrDefault(Color.GRAY)
+                style = Paint.Style.STROKE
+                strokeWidth = sizePx * 0.035f
+            },
+        )
         canvas.restore()
+        baseCache.put(shopId, bmp)
+        return bmp
+    }
 
-        return BitmapDescriptorFactory.fromBitmap(bmp).also { cache.put(key, it) }
+    /** 目标尺寸的 descriptor：母版等比缩放（key=shopId/px，避免每帧重建） */
+    fun descriptorAt(shopId: Long, colorHex: String, source: Bitmap?, targetPx: Int): BitmapDescriptor {
+        val px = targetPx.coerceAtLeast(12)
+        val key = "$shopId/$px"
+        descriptorCache.get(key)?.let { return it }
+        val base = baseBitmap(shopId, colorHex, source)
+        val scaled = if (base.width == px) base else Bitmap.createScaledBitmap(base, px, px, true)
+        return BitmapDescriptorFactory.fromBitmap(scaled).also { descriptorCache.put(key, it) }
+    }
+
+    companion object {
+        const val BASE_PX = 160
     }
 }

@@ -117,6 +117,29 @@ fun TasteMapNav(
             navController = navController,
             startDestination = Routes.MAP_HOME,
             modifier = Modifier.padding(padding),
+            // R3 反馈：页面转场对齐系统级动效（滑入+淡入 280ms 标准曲线，返回反向）
+            enterTransition = {
+                androidx.compose.animation.slideInHorizontally(
+                    androidx.compose.animation.core.tween(280),
+                ) { it / 5 } + androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(280))
+            },
+            exitTransition = {
+                androidx.compose.animation.scaleOut(
+                    targetScale = 0.96f,
+                    animationSpec = androidx.compose.animation.core.tween(280),
+                ) + androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(200))
+            },
+            popEnterTransition = {
+                androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(250)) +
+                    androidx.compose.animation.slideInHorizontally(
+                        androidx.compose.animation.core.tween(280),
+                    ) { -it / 5 }
+            },
+            popExitTransition = {
+                androidx.compose.animation.slideOutHorizontally(
+                    androidx.compose.animation.core.tween(280),
+                ) { it / 5 } + androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(220))
+            },
         ) {
             composable(Routes.MAP_HOME) {
                 MapHomeScreen(
