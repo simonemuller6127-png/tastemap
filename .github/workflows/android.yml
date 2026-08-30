@@ -24,6 +24,11 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      - name: Wrapper dist -> official URL on CI
+        # 仓库里 distributionUrl 指向腾讯镜像（开发机在国内，services.gradle.org 不通）；
+        # GitHub 拉不到该镜像，CI 上改回官方源
+        run: sed -i 's#mirrors.cloud.tencent.com/gradle#services.gradle.org#' gradle/wrapper/gradle-wrapper.properties
+
       - name: Unit tests
         run: |
           ./gradlew test --stacktrace 2>&1 | tee gradle-run.log
@@ -42,9 +47,11 @@ jobs:
             echo '```'
             tail -120 gradle-run.log
             echo '```'
-            echo "## Test results (if any)"
-            find "$TASTEMAP_BUILD_ROOT" -path "*test-results*" -name "*.xml" -exec sh -c 'echo "=== $1"; cat "$1"' _ {} \; || true
           } >> "$GITHUB_STEP_SUMMARY"
+          # 注解匿名可读（API），把失败段也发一份
+          { awk '/What went wrong|FAILURE: Build/{f=1} f{print; n++} n>20{exit}' gradle-run.log; tail -8 gradle-run.log; } \
+            | tr '\n' '\001' | sed 's/\001/%0A/g' \
+            | xargs -0 -I{} echo "::error title=gradle-tail::{}" || true
 
       - uses: actions/upload-artifact@v4
         with:
