@@ -227,12 +227,9 @@ fun MapHomeScreen(
         runCatching {
             val options = com.amap.api.maps.model.CustomMapStyleOptions()
             if (styleEnabled) {
-                // 每次从 assets 覆盖拷贝：样式随版本迭代（R3 现场调参）
-                val file = java.io.File(context.filesDir, "handdrawn_style.json")
-                context.assets.open("mapstyle/handdrawn.json").use { input ->
-                    file.outputStream().use { input.copyTo(it) }
-                }
-                options.setEnable(true).setStyleDataPath(file.path)
+                // 样式字节直读 assets：随包版本走，无 filesDir 落地拷贝的陈旧文件问题
+                val data = context.assets.open("mapstyle/handdrawn.json").use { it.readBytes() }
+                options.setEnable(true).setStyleData(data)
             } else {
                 options.setEnable(false)
             }
