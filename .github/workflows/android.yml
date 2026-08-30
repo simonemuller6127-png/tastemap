@@ -25,9 +25,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Wrapper dist -> official URL on CI
-        # 仓库里 distributionUrl 指向腾讯镜像（开发机在国内，services.gradle.org 不通）；
+        # 仓库里 distributionUrl 指向腾讯镜像（开发机在国内，services.gradle.org/distributions 不通）；
         # GitHub 拉不到该镜像，CI 上改回官方源
-        run: sed -i 's#mirrors.cloud.tencent.com/gradle#services.gradle.org#' gradle/wrapper/gradle-wrapper.properties
+        run: sed -i 's#mirrors.cloud.tencent.com/gradle#services.gradle.org/distributions#' gradle/wrapper/gradle-wrapper.properties
 
       - name: Unit tests
         run: |
