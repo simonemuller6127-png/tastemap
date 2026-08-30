@@ -8,6 +8,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      # 仓库根 build.gradle.kts 把 buildDirectory 重定向到该变量（默认 D:/smellmap-build，
+      # 那是 Windows 开发机约定）。CI 上指向工作区内 ASCII 路径，产物/测试报告路径才可预测。
+      TASTEMAP_BUILD_ROOT: ${{ github.workspace }}/build
     steps:
       - uses: actions/checkout@v4
 
@@ -21,12 +25,28 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Unit tests
-        run: ./gradlew test --stacktrace
+        run: |
+          ./gradlew test --stacktrace 2>&1 | tee gradle-run.log
+          exit ${PIPESTATUS[0]}
 
       - name: Build debug APK
-        run: ./gradlew :app:assembleDebug --stacktrace
+        run: |
+          ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee -a gradle-run.log
+          exit ${PIPESTATUS[0]}
+
+      - name: Failure log to summary
+        if: failure()
+        run: |
+          {
+            echo "## Gradle log tail"
+            echo '```'
+            tail -120 gradle-run.log
+            echo '```'
+            echo "## Test results (if any)"
+            find "$TASTEMAP_BUILD_ROOT" -path "*test-results*" -name "*.xml" -exec sh -c 'echo "=== $1"; cat "$1"' _ {} \; || true
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: build/app/outputs/apk/debug/app-debug.apk
