@@ -1,46 +1,307 @@
 {
   "styleJson": [
-    { "featureType": "background", "stylers": { "color": "#f7f2e7" } },
-    { "featureType": "land", "stylers": { "color": "#f7f2e7" } },
-    { "featureType": "water", "stylers": { "color": "#c2d8de", "fillOpacity": 0.9 } },
-    { "featureType": "green", "stylers": { "color": "#d9e0c8", "fillOpacity": 0.8 } },
-
-    { "featureType": "road", "elementType": "geometry", "stylers": { "fillColor": "#efe4c9", "strokeColor": "#e2d5b2", "lineWidth": 4 } },
-    { "featureType": "highway", "elementType": "geometry", "stylers": { "fillColor": "#ecd9a8", "strokeColor": "#d5c391", "lineWidth": 6 } },
-    { "featureType": "arterial", "elementType": "geometry", "stylers": { "fillColor": "#f2e8d0", "strokeColor": "#ddd0ae", "lineWidth": 5 } },
-    { "featureType": "local", "elementType": "geometry", "stylers": { "fillColor": "#f4ecd8", "strokeColor": "#e6dcc0", "lineWidth": 3 } },
-    { "featureType": "road", "elementType": "labels", "stylers": { "textFillColor": "#6b6357", "textStrokeColor": "#f7f2e7", "textFillOpacity": 0.9 } },
-    { "featureType": "highway", "elementType": "labels", "stylers": { "textFillColor": "#8a7d5e", "textStrokeColor": "#f7f2e7", "textFillOpacity": 0.85 } },
-
-    { "featureType": "numlabel", "stylers": { "visible": false } },
-    { "featureType": "guideBoards", "stylers": { "visible": false } },
-    { "featureType": "subway", "stylers": { "visible": false } },
-    { "featureType": "subwayline", "stylers": { "visible": false } },
-    { "featureType": "subwaylabel", "stylers": { "visible": false } },
-    { "featureType": "subwayBeingBuilt", "stylers": { "visible": false } },
-    { "featureType": "railway", "stylers": { "visible": false } },
-    { "featureType": "roadarrow", "stylers": { "visible": false } },
-    { "featureType": "building", "stylers": { "visible": false } },
-    { "featureType": "manland", "stylers": { "visible": false } },
-
-    { "featureType": "poi", "stylers": { "showIcon": false, "showLabel": false } },
-    { "featureType": "pois", "stylers": { "showIcon": false, "showLabel": false } },
-    { "featureType": "poilabel", "stylers": { "showIcon": false, "showLabel": false } },
-    { "featureType": "aois", "stylers": { "showIcon": false, "showLabel": false } },
-    { "featureType": "scenicSpot", "stylers": { "showIcon": false, "showLabel": false } },
-    { "featureType": "company", "stylers": { "showLabel": false } },
-    { "featureType": "education", "stylers": { "showLabel": false } },
-    { "featureType": "edu", "stylers": { "showLabel": false } },
-    { "featureType": "medical", "stylers": { "showLabel": false } },
-    { "featureType": "health", "stylers": { "showLabel": false } },
-    { "featureType": "entlabel", "stylers": { "showLabel": false } },
-    { "featureType": "business", "stylers": { "showLabel": false } },
-    { "featureType": "culture", "stylers": { "showLabel": false } },
-    { "featureType": "sports", "stylers": { "showLabel": false } },
-    { "featureType": "public", "stylers": { "showLabel": false } },
-    { "featureType": "estate", "stylers": { "showLabel": false } },
-
-    { "featureType": "districtlabel", "stylers": { "textFillColor": "#8a7f6d", "textStrokeColor": "#f7f2e7" } },
-    { "featureType": "districtlable", "stylers": { "textFillColor": "#8a7f6d", "textStrokeColor": "#f7f2e7" } }
+    {
+      "featureType": "background",
+      "stylers": {
+        "color": "#f7f2e7"
+      }
+    },
+    {
+      "featureType": "land",
+      "stylers": {
+        "color": "#f7f2e7"
+      }
+    },
+    {
+      "featureType": "water",
+      "stylers": {
+        "color": "#c2d8de",
+        "fillOpacity": 0.9
+      }
+    },
+    {
+      "featureType": "green",
+      "stylers": {
+        "color": "#d9e0c8",
+        "fillOpacity": 0.8
+      }
+    },
+    {
+      "featureType": "road",
+      "elementType": "geometry",
+      "stylers": {
+        "fillColor": "#efe4c9",
+        "strokeColor": "#e2d5b2",
+        "lineWidth": 4
+      }
+    },
+    {
+      "featureType": "highway",
+      "elementType": "geometry",
+      "stylers": {
+        "fillColor": "#ecd9a8",
+        "strokeColor": "#d5c391",
+        "lineWidth": 6
+      }
+    },
+    {
+      "featureType": "arterial",
+      "elementType": "geometry",
+      "stylers": {
+        "fillColor": "#f2e8d0",
+        "strokeColor": "#ddd0ae",
+        "lineWidth": 5
+      }
+    },
+    {
+      "featureType": "local",
+      "elementType": "geometry",
+      "stylers": {
+        "fillColor": "#f4ecd8",
+        "strokeColor": "#e6dcc0",
+        "lineWidth": 3
+      }
+    },
+    {
+      "featureType": "road",
+      "elementType": "labels",
+      "stylers": {
+        "textFillColor": "#6b6357",
+        "textStrokeColor": "#f7f2e7",
+        "textFillOpacity": 0.9
+      }
+    },
+    {
+      "featureType": "highway",
+      "elementType": "labels",
+      "stylers": {
+        "textFillColor": "#8a7d5e",
+        "textStrokeColor": "#f7f2e7",
+        "textFillOpacity": 0.85
+      }
+    },
+    {
+      "featureType": "numlabel",
+      "stylers": {
+        "visible": false
+      }
+    },
+    {
+      "featureType": "guideBoards",
+      "stylers": {
+        "visible": false
+      }
+    },
+    {
+      "featureType": "subway",
+      "stylers": {
+        "visible": false
+      }
+    },
+    {
+      "featureType": "subwayline",
+      "stylers": {
+        "visible": false
+      }
+    },
+    {
+      "featureType": "subwaylabel",
+      "stylers": {
+        "visible": false
+      }
+    },
+    {
+      "featureType": "subwayBeingBuilt",
+      "stylers": {
+        "visible": false
+      }
+    },
+    {
+      "featureType": "railway",
+      "stylers": {
+        "visible": false
+      }
+    },
+    {
+      "featureType": "roadarrow",
+      "stylers": {
+        "visible": false
+      }
+    },
+    {
+      "featureType": "building",
+      "stylers": {
+        "visible": false
+      }
+    },
+    {
+      "featureType": "manland",
+      "stylers": {
+        "visible": false
+      }
+    },
+    {
+      "featureType": "poi",
+      "stylers": {
+        "showIcon": false,
+        "showLabel": false
+      }
+    },
+    {
+      "featureType": "pois",
+      "stylers": {
+        "showIcon": false,
+        "showLabel": false
+      }
+    },
+    {
+      "featureType": "poilabel",
+      "stylers": {
+        "showIcon": false,
+        "showLabel": false
+      }
+    },
+    {
+      "featureType": "aois",
+      "stylers": {
+        "showIcon": false,
+        "showLabel": false
+      }
+    },
+    {
+      "featureType": "scenicSpot",
+      "stylers": {
+        "showIcon": false,
+        "showLabel": false
+      }
+    },
+    {
+      "featureType": "company",
+      "stylers": {
+        "showLabel": false
+      }
+    },
+    {
+      "featureType": "education",
+      "stylers": {
+        "showLabel": false
+      }
+    },
+    {
+      "featureType": "edu",
+      "stylers": {
+        "showLabel": false
+      }
+    },
+    {
+      "featureType": "medical",
+      "stylers": {
+        "showLabel": false
+      }
+    },
+    {
+      "featureType": "health",
+      "stylers": {
+        "showLabel": false
+      }
+    },
+    {
+      "featureType": "entlabel",
+      "stylers": {
+        "showLabel": false
+      }
+    },
+    {
+      "featureType": "business",
+      "stylers": {
+        "showLabel": false
+      }
+    },
+    {
+      "featureType": "culture",
+      "stylers": {
+        "showLabel": false
+      }
+    },
+    {
+      "featureType": "sports",
+      "stylers": {
+        "showLabel": false
+      }
+    },
+    {
+      "featureType": "public",
+      "stylers": {
+        "showLabel": false
+      }
+    },
+    {
+      "featureType": "estate",
+      "stylers": {
+        "showLabel": false
+      }
+    },
+    {
+      "featureType": "districtlabel",
+      "stylers": {
+        "textFillColor": "#8a7f6d",
+        "textStrokeColor": "#f7f2e7"
+      }
+    },
+    {
+      "featureType": "districtlable",
+      "stylers": {
+        "textFillColor": "#8a7f6d",
+        "textStrokeColor": "#f7f2e7"
+      }
+    },
+    {
+      "featureType": "numlabel",
+      "stylers": {
+        "visible": false
+      }
+    },
+    {
+      "featureType": "guideBoards",
+      "stylers": {
+        "visible": false
+      }
+    },
+    {
+      "featureType": "subwaylabel",
+      "stylers": {
+        "visible": false
+      }
+    },
+    {
+      "featureType": "subwayline",
+      "stylers": {
+        "visible": false
+      }
+    },
+    {
+      "featureType": "poilabel",
+      "stylers": {
+        "visible": false
+      }
+    },
+    {
+      "featureType": "pois",
+      "stylers": {
+        "visible": false
+      }
+    },
+    {
+      "featureType": "aois",
+      "stylers": {
+        "visible": false
+      }
+    },
+    {
+      "featureType": "scenicSpot",
+      "stylers": {
+        "visible": false
+      }
+    }
   ]
 }

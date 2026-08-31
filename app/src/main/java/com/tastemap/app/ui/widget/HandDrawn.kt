@@ -61,23 +61,40 @@ private fun generatePaperTile(): ImageBitmap {
 }
 
 /**
- * 地图纸面叠加瓦片（F18，R3 反馈"没有纸的感觉"）：
- * 不透明米白底 + 纤维点，配合 BlendMode.Multiply 叠在地图瓦片上——
- * 纸感来自纹理而非单纯换色。96px 可平铺。
+ * 地图纸面叠加层（F18）。真机实测（P9/EMUI8，3dmap 10.0.600）两个结论都写进实现：
+ * 1. BlendMode.Multiply 的 drawImage 在部分设备渲染管线里会退化为 source-over——
+ *    所以这里不做"米白不透明底"，改为把暖纸色调和纤维点以**低透明度直接烘焙进整屏位图**，
+ *    source-over 一把画完，效果跨设备稳定，且每帧一次 drawImage（原先逐瓦片上百次）。
+ * 2. 高德本地样式 JSON（setStyleData/setStyleDataPath，包裹与裸数组两格式）在该版本实测
+ *    均不生效，底图换色/隐藏元素暂时只能靠这层叠加+控制台加密样式包（后续路线）。
+ *
+ * @param widthPx 视口宽（px），随窗口变化重建
+ * @param heightPx 视口高（px）
  */
-fun mapPaperOverlayTile(): ImageBitmap {
-    val px = 96
-    val bmp = androidx.compose.ui.graphics.ImageBitmap(px, px)
+fun mapPaperOverlayBitmap(widthPx: Int, heightPx: Int): ImageBitmap {
+    val w = widthPx.coerceAtLeast(1)
+    val h = heightPx.coerceAtLeast(1)
+    val bmp = androidx.compose.ui.graphics.ImageBitmap(w, h)
     val canvas = androidx.compose.ui.graphics.Canvas(bmp)
-    canvas.drawRect(0f, 0f, px.toFloat(), px.toFloat(), Paint().apply { color = Color(0xFFF7F2E7) })
-    val rnd = Random(7)
-    val fiber = Paint().apply { color = Color(0x10807560) }
-    val fiber2 = Paint().apply { color = Color(0x0AFFFFFF) }
-    repeat(50) {
-        canvas.drawCircle(Offset(rnd.nextFloat() * px, rnd.nextFloat() * px), rnd.nextFloat() * 1.1f + 0.3f, fiber)
+    // 暖纸色罩：15% 让默认地图向纸色偏移但保持可读（50% 会把对比洗掉）
+    canvas.drawRect(0f, 0f, w.toFloat(), h.toFloat(), Paint().apply { color = Color(0x26F7F2E7) })
+    val rnd = Random(7) // 固定种子：纹理全局一致不闪变
+    val fiber = Paint().apply { color = Color(0x14807560) }      // 深纤维点
+    val fiber2 = Paint().apply { color = Color(0x0FFFFFFF) }     // 亮纤维点
+    val dots = (w * h / 4500).coerceIn(90, 400)
+    repeat(dots) {
+        canvas.drawCircle(
+            Offset(rnd.nextFloat() * w, rnd.nextFloat() * h),
+            rnd.nextFloat() * 1.3f + 0.4f,
+            if (rnd.nextBoolean()) fiber else fiber2,
+        )
     }
-    repeat(30) {
-        canvas.drawCircle(Offset(rnd.nextFloat() * px, rnd.nextFloat() * px), rnd.nextFloat() * 1.6f + 0.4f, fiber2)
+    // 极淡的横向抄纸纹：几条 1px 水平细线，模拟手工纸帘痕
+    val line = Paint().apply { color = Color(0x0A8A7F6A) }
+    var y = rnd.nextInt(9)
+    while (y < h) {
+        canvas.drawRect(0f, y.toFloat(), w.toFloat(), (y + 1).toFloat(), line)
+        y += 6 + rnd.nextInt(5)
     }
     return bmp
 }

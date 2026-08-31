@@ -53,6 +53,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -227,9 +228,35 @@ fun MapHomeScreen(
         runCatching {
             val options = com.amap.api.maps.model.CustomMapStyleOptions()
             if (styleEnabled) {
-                // 样式字节直读 assets：随包版本走，无 filesDir 落地拷贝的陈旧文件问题
-                val data = context.assets.open("mapstyle/handdrawn.json").use { it.readBytes() }
-                options.setEnable(true).setStyleData(data)
+                // 优先级 1：控制台"样式地图"下载的加密样式包（assets/mapstyle/console/，
+                // 官方正规路，支持离线；本地手写 JSON 在 3dmap 10.0.600 实测不生效）。
+                // 优先级 2：assets/mapstyle/handdrawn.json（手写草稿，部分版本生效）。
+                val consoleDir = java.io.File(context.filesDir, "console_style")
+                val consoleNames = runCatching { context.assets.list("mapstyle/console") }.getOrNull()
+                consoleNames?.takeIf { it.isNotEmpty() }?.let { names ->
+                    consoleDir.mkdirs()
+                    names.forEach { name ->
+                        context.assets.open("mapstyle/console/$name").use { input ->
+                            java.io.File(consoleDir, name).outputStream().use { input.copyTo(it) }
+                        }
+                    }
+                    options.setEnable(true)
+                    consoleDir.resolve("style.data").takeIf { it.exists() }?.let {
+                        options.setStyleDataPath(it.path)
+                    }
+                    consoleDir.resolve("style_extra.data").takeIf { it.exists() }?.let {
+                        options.setStyleExtraPath(it.path)
+                    }
+                    consoleDir.resolve("textures.data").takeIf { it.exists() }?.let {
+                        options.setStyleTexturePath(it.path)
+                    }
+                } ?: run {
+                    val file = java.io.File(context.filesDir, "handdrawn_style.json")
+                    context.assets.open("mapstyle/handdrawn.json").use { input ->
+                        file.outputStream().use { input.copyTo(it) }
+                    }
+                    options.setEnable(true).setStyleDataPath(file.path)
+                }
             } else {
                 options.setEnable(false)
             }
@@ -376,26 +403,19 @@ fun MapHomeScreen(
                     }
                 },
             )
-            // F18 纸面感（R3 二次反馈）：样式换色之上再叠纸纹（正片叠底），纹理才是纸感的来源
+            // F18 纸面感：整屏预烘焙纸纹叠加，一次 drawImage（真机实测 Multiply 会退化为
+            // source-over，改为低透明暖色+纤维点直接烘焙进位图，见 HandDrawn.kt 顶部说明）
             if (styleEnabled) {
-                val overlayTile = remember { com.tastemap.app.ui.widget.mapPaperOverlayTile() }
-                Canvas(Modifier.fillMaxSize()) {
-                    val tileInt = (96.dp.toPx()).toInt().coerceAtLeast(8)
-                    var y = 0
-                    while (y < size.height.toInt()) {
-                        var x = 0
-                        while (x < size.width.toInt()) {
-                            drawImage(
-                                overlayTile,
-                                dstOffset = androidx.compose.ui.unit.IntOffset(x, y),
-                                dstSize = androidx.compose.ui.unit.IntSize(tileInt, tileInt),
-                                alpha = 0.5f,
-                                blendMode = androidx.compose.ui.graphics.BlendMode.Multiply,
-                            )
-                            x += tileInt
-                        }
-                        y += tileInt
-                    }
+                var overlaySize by remember { mutableStateOf(android.util.Size(1, 1)) }
+                val overlay = remember(overlaySize) {
+                    com.tastemap.app.ui.widget.mapPaperOverlayBitmap(overlaySize.width, overlaySize.height)
+                }
+                Canvas(
+                    Modifier
+                        .fillMaxSize()
+                        .onSizeChanged { overlaySize = android.util.Size(it.width, it.height) },
+                ) {
+                    drawImage(overlay)
                 }
             }
             if (pins.isEmpty()) {
